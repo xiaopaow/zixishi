@@ -59,6 +59,9 @@ export default defineConfig({
     })
   ],
   build: {
+    // Sites' vinext-compatible runtime binds static assets from dist/client
+    // while loading the worker entrypoint from dist/server/index.js.
+    outDir: 'dist/client',
     sourcemap: true,
     target: 'es2022'
   }
