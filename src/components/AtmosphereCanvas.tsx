@@ -247,8 +247,24 @@ export function AtmosphereCanvas({
       });
     };
 
-    const render = () => {
-      context.clearRect(0, 0, width, height);
+    let animationFrame = 0;
+    let lastPaintAt = 0;
+    const frameInterval = quality === 'low' ? 1000 / 30 : 0;
+
+    function scheduleFrame() {
+      if (!animationFrame && document.visibilityState === 'visible') {
+        animationFrame = window.requestAnimationFrame(render);
+      }
+    }
+
+    function render(timestamp: number) {
+      animationFrame = 0;
+      if (frameInterval && timestamp - lastPaintAt < frameInterval) {
+        scheduleFrame();
+        return;
+      }
+      lastPaintAt = timestamp;
+      context!.clearRect(0, 0, width, height);
       if (effect === 'rain') drawRain();
       if (effect === 'city') {
         drawRain(true);
@@ -261,16 +277,26 @@ export function AtmosphereCanvas({
       if (effect === 'train') drawTrainWindow();
       if (effect === 'classroom') drawClassroomDust();
       frame += 1;
-      animationFrame = window.requestAnimationFrame(render);
-    };
+      scheduleFrame();
+    }
 
-    let animationFrame = 0;
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        window.cancelAnimationFrame(animationFrame);
+        animationFrame = 0;
+      } else {
+        lastPaintAt = 0;
+        scheduleFrame();
+      }
+    };
     const observer = new ResizeObserver(resize);
     observer.observe(canvas);
+    document.addEventListener('visibilitychange', handleVisibility);
     resize();
-    render();
+    scheduleFrame();
     return () => {
       observer.disconnect();
+      document.removeEventListener('visibilitychange', handleVisibility);
       window.cancelAnimationFrame(animationFrame);
     };
   }, [effect, enabled, quality]);

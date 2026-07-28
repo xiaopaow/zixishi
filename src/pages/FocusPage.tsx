@@ -60,6 +60,7 @@ export function FocusPage() {
   const [endOpen, setEndOpen] = useState(false);
   const [completed, setCompleted] = useState<FocusSession | null>(null);
   const [soundReady, setSoundReady] = useState(audioEngine.state === 'running');
+  const [operationError, setOperationError] = useState('');
   const completionStarted = useRef(false);
   const hideTimer = useRef<number | null>(null);
   const wakeLock = useRef<WakeLockSentinel | null>(null);
@@ -188,12 +189,17 @@ export function FocusPage() {
   const completeAutomatically = useCallback(async () => {
     if (!activeTimer || completionStarted.current) return;
     completionStarted.current = true;
-    audioEngine.chime();
-    showNotification();
-    const session = await finishFocus('completed', true);
-    setCompleted(session);
-    window.setTimeout(() => void audioEngine.fadeOut(), 1200);
-    setControlsVisible(true);
+    try {
+      audioEngine.chime();
+      showNotification();
+      const session = await finishFocus('completed', true);
+      setCompleted(session);
+      window.setTimeout(() => void audioEngine.fadeOut(), 1200);
+      setControlsVisible(true);
+    } catch {
+      completionStarted.current = false;
+      setOperationError('记录暂时无法保存。计时仍保留在本机，请重试或先导出数据。');
+    }
   }, [activeTimer, finishFocus, showNotification]);
 
   useEffect(() => {
@@ -208,18 +214,24 @@ export function FocusPage() {
 
   const togglePause = async () => {
     if (!activeTimer) return;
-    if (activeTimer.status === 'running') {
-      await pauseFocus();
-      await audioEngine.fadeOut();
-      setSoundReady(false);
-    } else {
-      await resumeFocus();
-      try {
-        await audioEngine.fadeIn(preferences.sound);
-        setSoundReady(true);
-      } catch {
+    setOperationError('');
+    try {
+      if (activeTimer.status === 'running') {
+        await pauseFocus();
+        await audioEngine.fadeOut();
         setSoundReady(false);
+      } else {
+        await resumeFocus();
+        try {
+          await audioEngine.fadeIn(preferences.sound);
+          setSoundReady(true);
+        } catch {
+          setSoundReady(false);
+        }
       }
+    } catch {
+      setOperationError('计时状态已在其他页面更新，正在同步最新状态。');
+      setSoundReady(false);
     }
     revealControls();
   };
@@ -235,14 +247,20 @@ export function FocusPage() {
 
   const end = async (save: boolean) => {
     completionStarted.current = true;
-    const session = await finishFocus('abandoned', save);
-    await audioEngine.fadeOut();
-    setEndOpen(false);
-    if (session) {
-      setCompleted(session);
-    } else {
+    setOperationError('');
+    try {
+      const session = await finishFocus('abandoned', save);
+      await audioEngine.fadeOut();
+      setEndOpen(false);
+      if (session) {
+        setCompleted(session);
+      } else {
+        navigate('/');
+      }
+    } catch {
       completionStarted.current = false;
-      navigate('/');
+      setEndOpen(false);
+      setOperationError('结束操作没有写入成功，计时仍保留，请稍后重试。');
     }
   };
 
@@ -291,11 +309,19 @@ export function FocusPage() {
       motionEnabled={preferences.motionEnabled}
       quality={preferences.quality}
     >
-      <div
+      <main
+        id="main-content"
+        data-route="/focus"
+        tabIndex={-1}
         className={`focus-screen ${controlsVisible ? 'controls-visible' : 'controls-hidden'} timer-${preferences.timerStyle}`}
       >
         <header className="focus-header liquid-glass">
-          <button type="button" className="focus-brand" onClick={() => setEndOpen(true)}>
+          <button
+            type="button"
+            className="focus-brand"
+            onClick={() => setEndOpen(true)}
+            aria-label="打开结束专注确认"
+          >
             <span><Leaf size={18} /></span>
             <strong>栖时</strong>
           </button>
@@ -314,6 +340,25 @@ export function FocusPage() {
           </button>
         )}
 
+        {operationError && (
+          <div className="focus-operation-error liquid-glass" role="alert">
+            <span>{operationError}</span>
+            <button
+              type="button"
+              onClick={() => {
+                setOperationError('');
+                if (activeTimer?.mode === 'countdown' && displaySeconds <= 0) {
+                  void completeAutomatically();
+                }
+              }}
+            >
+              {activeTimer?.mode === 'countdown' && displaySeconds <= 0
+                ? '重试保存'
+                : '知道了'}
+            </button>
+          </div>
+        )}
+
         {activeTimer?.status === 'paused' && (
           <aside className="away-pause-card liquid-glass" aria-live="polite">
             <span className="away-pause-icon"><Coffee size={18} /></span>
@@ -329,7 +374,7 @@ export function FocusPage() {
         )}
 
         {activeTimer && (
-          <main className="timer-stage">
+          <section className="timer-stage" aria-label="本次专注计时">
             <div className={`timer-display liquid-glass ${activeTimer.status}`}>
               <div className="timer-meta">
                 <span>{activeTimer.mode === 'countdown' ? '专注倒计时' : '自由正计时'}</span>
@@ -349,7 +394,7 @@ export function FocusPage() {
               )}
               {activeTimer.status === 'paused' && <em>暂停中 · 慢一点也没关系</em>}
             </div>
-          </main>
+          </section>
         )}
 
         {activeTimer && (
@@ -440,7 +485,7 @@ export function FocusPage() {
             </div>
           </div>
         </Modal>
-      </div>
+      </main>
     </SceneBackground>
   );
 }

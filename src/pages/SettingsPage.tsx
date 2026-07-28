@@ -65,6 +65,9 @@ export function SettingsPage() {
 
   const readBackup = async (file: File) => {
     try {
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error('备份文件超过 5 MB，请确认文件来源与内容是否正确');
+      }
       const payload = JSON.parse(await file.text()) as unknown;
       await importData(payload);
       await refresh();
@@ -166,6 +169,7 @@ export function SettingsPage() {
                   min="1"
                   max="180"
                   value={preferences.defaultMinutes}
+                  aria-label="默认专注时长（分钟）"
                   onChange={(event) =>
                     void updatePreferences({
                       ...preferences,
@@ -180,11 +184,15 @@ export function SettingsPage() {
               <div><strong>计时器样式</strong><small>专注中仍可随时切换</small></div>
               <div className="segmented small">
                 <button
+                  type="button"
                   className={preferences.timerStyle === 'compact' ? 'selected' : ''}
+                  aria-pressed={preferences.timerStyle === 'compact'}
                   onClick={() => void updatePreferences({ ...preferences, timerStyle: 'compact' })}
                 >透明小卡</button>
                 <button
+                  type="button"
                   className={preferences.timerStyle === 'large' ? 'selected' : ''}
+                  aria-pressed={preferences.timerStyle === 'large'}
                   onClick={() => void updatePreferences({ ...preferences, timerStyle: 'large' })}
                 >大数字</button>
               </div>
@@ -193,11 +201,15 @@ export function SettingsPage() {
               <div><strong>场景画质</strong><small>低画质更节省流量和内存</small></div>
               <div className="segmented small">
                 <button
+                  type="button"
                   className={preferences.quality === 'high' ? 'selected' : ''}
+                  aria-pressed={preferences.quality === 'high'}
                   onClick={() => void updatePreferences({ ...preferences, quality: 'high' })}
                 >高清</button>
                 <button
+                  type="button"
                   className={preferences.quality === 'low' ? 'selected' : ''}
+                  aria-pressed={preferences.quality === 'low'}
                   onClick={() => void updatePreferences({ ...preferences, quality: 'low' })}
                 >省流</button>
               </div>

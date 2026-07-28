@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { Quality, Scene } from '../types';
 import { AtmosphereCanvas } from './AtmosphereCanvas';
 import { LivingDetails } from './LivingDetails';
@@ -20,8 +20,10 @@ export function SceneBackground({
   children,
 }: SceneBackgroundProps) {
   const [loadedSceneId, setLoadedSceneId] = useState<string | null>(null);
-  const [pointer, setPointer] = useState({ x: 0, y: 0 });
   const [systemReducedMotion, setSystemReducedMotion] = useState(false);
+  const backgroundRef = useRef<HTMLDivElement>(null);
+  const parallaxFrame = useRef(0);
+  const pendingParallax = useRef({ x: 0, y: 0 });
   const loaded = loadedSceneId === scene.id;
 
   useEffect(() => {
@@ -33,20 +35,42 @@ export function SceneBackground({
   }, []);
 
   const effectsEnabled = motionEnabled && !systemReducedMotion;
+
+  const scheduleParallax = (x: number, y: number) => {
+    pendingParallax.current = { x, y };
+    if (parallaxFrame.current) return;
+    parallaxFrame.current = window.requestAnimationFrame(() => {
+      const element = backgroundRef.current;
+      const point = pendingParallax.current;
+      element?.style.setProperty('--parallax-x', `${point.x}px`);
+      element?.style.setProperty('--parallax-y', `${point.y}px`);
+      element?.style.setProperty('--foreground-x', `${point.x * -0.45}px`);
+      element?.style.setProperty('--foreground-y', `${point.y * -0.35}px`);
+      parallaxFrame.current = 0;
+    });
+  };
+
   useEffect(() => {
-    if (!effectsEnabled) setPointer({ x: 0, y: 0 });
+    if (!effectsEnabled) scheduleParallax(0, 0);
+    return () => {
+      if (parallaxFrame.current) {
+        window.cancelAnimationFrame(parallaxFrame.current);
+        parallaxFrame.current = 0;
+      }
+    };
   }, [effectsEnabled]);
 
   const style = {
     '--scene-overlay': dim ? scene.palette.overlay : 'rgba(0,0,0,.08)',
-    '--parallax-x': `${pointer.x}px`,
-    '--parallax-y': `${pointer.y}px`,
-    '--foreground-x': `${pointer.x * -0.45}px`,
-    '--foreground-y': `${pointer.y * -0.35}px`,
+    '--parallax-x': '0px',
+    '--parallax-y': '0px',
+    '--foreground-x': '0px',
+    '--foreground-y': '0px',
   } as CSSProperties;
 
   return (
     <div
+      ref={backgroundRef}
       className={`scene-background ${effectsEnabled ? 'motion-enabled' : 'motion-disabled'}`}
       data-scene={scene.id}
       style={style}
@@ -55,12 +79,12 @@ export function SceneBackground({
           return;
         }
         const rect = event.currentTarget.getBoundingClientRect();
-        setPointer({
-          x: ((event.clientX - rect.left) / rect.width - 0.5) * -8,
-          y: ((event.clientY - rect.top) / rect.height - 0.5) * -5,
-        });
+        scheduleParallax(
+          ((event.clientX - rect.left) / rect.width - 0.5) * -8,
+          ((event.clientY - rect.top) / rect.height - 0.5) * -5,
+        );
       }}
-      onPointerLeave={() => setPointer({ x: 0, y: 0 })}
+      onPointerLeave={() => scheduleParallax(0, 0)}
     >
       <ScenePicture
         className="scene-image scene-poster"

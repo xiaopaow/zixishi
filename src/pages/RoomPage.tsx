@@ -17,6 +17,7 @@ import { ScenePicture } from '../components/ScenePicture';
 import { SoundMixer } from '../components/SoundMixer';
 import { useApp } from '../context/AppContext';
 import { getScene, scenes, soundForScene } from '../data/scenes';
+import { ACTIVE_TIMER_CONFLICT_MESSAGE } from '../db';
 import type { TimerMode } from '../types';
 import { todayKey } from '../utils';
 
@@ -39,6 +40,7 @@ export function RoomPage() {
   const [taskId, setTaskId] = useState<string | null>(queryTask);
   const [goal, setGoal] = useState('');
   const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState('');
   const selectedScene = getScene(preferences.selectedSceneId);
   const todayTasks = useMemo(
     () =>
@@ -69,17 +71,8 @@ export function RoomPage() {
   const begin = async () => {
     if (starting) return;
     setStarting(true);
+    setStartError('');
     try {
-      try {
-        await audioEngine.start(preferences.sound);
-      } catch {
-        // Browsers may reject AudioContext resume before a trusted gesture.
-        // The timer still starts and the focus screen offers a retry button.
-      }
-      await updatePreferences({
-        ...preferences,
-        defaultMinutes: minutes,
-      });
       await startFocus({
         mode,
         minutes,
@@ -87,7 +80,29 @@ export function RoomPage() {
         taskId,
         sceneId: selectedScene.id,
       });
+      try {
+        await updatePreferences({
+          ...preferences,
+          defaultMinutes: minutes,
+        });
+      } catch {
+        // The active timer is already safely persisted. A preference write
+        // failure must not strand the user outside the focus screen.
+      }
+      try {
+        await audioEngine.start(preferences.sound);
+      } catch {
+        // Browsers may reject AudioContext resume after the IndexedDB write.
+        // The focus screen keeps the timer and offers a sound retry button.
+      }
       navigate('/focus');
+    } catch (error) {
+      setStartError(
+        error instanceof Error &&
+          error.message === ACTIVE_TIMER_CONFLICT_MESSAGE
+          ? '另一页面已经开始专注，请点击上方按钮回到正在进行的计时。'
+          : '暂时无法开始计时，请检查浏览器存储权限后重试。',
+      );
     } finally {
       setStarting(false);
     }
@@ -153,11 +168,13 @@ export function RoomPage() {
               <button
                 type="button"
                 className={mode === 'countdown' ? 'selected' : ''}
+                aria-pressed={mode === 'countdown'}
                 onClick={() => setMode('countdown')}
               >倒计时</button>
               <button
                 type="button"
                 className={mode === 'stopwatch' ? 'selected' : ''}
+                aria-pressed={mode === 'stopwatch'}
                 onClick={() => setMode('stopwatch')}
               >正计时</button>
             </div>
@@ -168,6 +185,7 @@ export function RoomPage() {
                     type="button"
                     key={value}
                     className={minutes === value && !customOpen ? 'selected' : ''}
+                    aria-pressed={minutes === value && !customOpen}
                     onClick={() => {
                       setMinutes(value);
                       setCustomOpen(false);
@@ -180,6 +198,7 @@ export function RoomPage() {
                 <button
                   type="button"
                   className={customOpen ? 'selected' : ''}
+                  aria-pressed={customOpen}
                   onClick={() => setCustomOpen(true)}
                 >
                   <RotateCcw size={17} />
@@ -194,6 +213,7 @@ export function RoomPage() {
                   min="1"
                   max="180"
                   value={minutes}
+                  aria-label="自定义专注时长（分钟）"
                   onChange={(event) =>
                     setMinutes(Math.min(180, Math.max(1, Number(event.target.value))))
                   }
@@ -227,13 +247,16 @@ export function RoomPage() {
                 ))}
               </select>
             </label>
-            <textarea
-              value={goal}
-              onChange={(event) => setGoal(event.target.value)}
-              placeholder="例如：读完第三章并整理笔记"
-              maxLength={120}
-              rows={2}
-            />
+            <label className="goal-textarea-label">
+              <span className="sr-only">本次目标说明</span>
+              <textarea
+                value={goal}
+                onChange={(event) => setGoal(event.target.value)}
+                placeholder="例如：读完第三章并整理笔记"
+                maxLength={120}
+                rows={2}
+              />
+            </label>
             <small>{goal.length}/120</small>
           </div>
 
@@ -255,6 +278,9 @@ export function RoomPage() {
             <Play size={18} fill="currentColor" />
             {activeTimer ? '已有专注正在进行' : starting ? '正在进入…' : '进入专注'}
           </button>
+          {startError && (
+            <p className="room-start-error" role="alert">{startError}</p>
+          )}
         </aside>
       </section>
     </div>

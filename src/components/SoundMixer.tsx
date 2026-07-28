@@ -68,6 +68,7 @@ export function SoundMixer({
             type="button"
             key={item.key}
             className={preferences.sound.musicType === item.key ? 'selected' : ''}
+            aria-pressed={preferences.sound.musicType === item.key}
             onClick={() => updateMusic(item.key)}
           >
             {item.label}

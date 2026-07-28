@@ -50,6 +50,9 @@ export function HomePage() {
     searchParams.get('welcome') === '1' ? pickWelcomeQuote() : null,
   );
   const [welcomeOpen, setWelcomeOpen] = useState(Boolean(welcomeQuote));
+  const [temporarySession] = useState(
+    () => searchParams.get('session') === 'temporary',
+  );
   const [newTask, setNewTask] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
@@ -66,7 +69,10 @@ export function HomePage() {
   const completedCount = todayTasks.filter((task) => task.completedAt).length;
 
   useEffect(() => {
-    if (searchParams.get('welcome') === '1') {
+    if (
+      searchParams.get('welcome') === '1' ||
+      searchParams.get('session') === 'temporary'
+    ) {
       navigate('/', { replace: true });
     }
   }, [navigate, searchParams]);
@@ -104,6 +110,12 @@ export function HomePage() {
           </button>
         </div>
       </Modal>
+
+      {temporarySession && (
+        <div className="session-storage-notice" role="status">
+          当前浏览器只允许标签页会话；关闭这个标签后需要重新登录。
+        </div>
+      )}
 
       {activeTimer && (
         <Link to="/focus" className="resume-banner">

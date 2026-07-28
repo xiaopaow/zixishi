@@ -9,7 +9,7 @@ import {
 import { useEffect } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { getScene } from '../data/scenes';
-import { getPreviewAccountSession } from '../data/localAccount';
+import { usePreviewAccountSession } from '../hooks/usePreviewAccountSession';
 import { useApp } from '../context/AppContext';
 
 const navigation = [
@@ -23,7 +23,7 @@ export function AppShell() {
   const { preferences } = useApp();
   const location = useLocation();
   const scene = getScene(preferences.selectedSceneId);
-  const account = getPreviewAccountSession();
+  const account = usePreviewAccountSession();
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -74,7 +74,13 @@ export function AppShell() {
         </div>
       </header>
 
-      <main className="page-container" key={location.pathname}>
+      <main
+        id="main-content"
+        data-route={location.pathname}
+        tabIndex={-1}
+        className="page-container"
+        key={location.pathname}
+      >
         <Outlet />
       </main>
 

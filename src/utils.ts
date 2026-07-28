@@ -1,4 +1,4 @@
-import type { ActiveTimer, FocusSession } from './types';
+import type { ActiveTimer, FocusInterval, FocusSession } from './types';
 
 export const todayKey = (date = new Date()) => {
   const year = date.getFullYear();
@@ -57,6 +57,43 @@ export const elapsedSeconds = (
         : wallClockLive;
   }
   return Math.max(0, timer.accumulatedSeconds + live);
+};
+
+export const closeRunningInterval = (
+  timer: ActiveTimer,
+  totalElapsedSeconds: number,
+): FocusInterval[] => {
+  const intervals = timer.focusIntervals ?? [];
+  if (timer.runningSince === null) return intervals;
+  const liveSeconds = Math.max(
+    0,
+    totalElapsedSeconds - timer.accumulatedSeconds,
+  );
+  if (liveSeconds <= 0) return intervals;
+  return [
+    ...intervals,
+    {
+      startedAt: timer.runningSince,
+      endedAt: timer.runningSince + liveSeconds * 1000,
+    },
+  ];
+};
+
+export const pausedTimerSnapshot = (
+  timer: ActiveTimer,
+  now = Date.now(),
+): ActiveTimer => {
+  if (timer.status === 'paused') return timer;
+  const accumulatedSeconds = elapsedSeconds(timer, now);
+  return {
+    ...timer,
+    accumulatedSeconds,
+    focusIntervals: closeRunningInterval(timer, accumulatedSeconds),
+    runningSince: null,
+    status: 'paused',
+    monotonicOrigin: null,
+    monotonicSince: null,
+  };
 };
 
 export const formatClock = (seconds: number) => {

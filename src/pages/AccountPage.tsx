@@ -24,9 +24,9 @@ import {
 import {
   accountNameFromEmail,
   clearPreviewAccountSession,
-  getPreviewAccountSession,
   savePreviewAccountSession,
 } from '../data/localAccount';
+import { usePreviewAccountSession } from '../hooks/usePreviewAccountSession';
 
 type AccountMode = 'login' | 'register';
 
@@ -34,7 +34,7 @@ export function AccountPage() {
   const [mode, setMode] = useState<AccountMode>('login');
   const [showPassword, setShowPassword] = useState(false);
   const [status, setStatus] = useState('');
-  const [session, setSession] = useState(getPreviewAccountSession);
+  const session = usePreviewAccountSession();
   const navigate = useNavigate();
   const plusPlan = useMemo(
     () => membershipPlans.find((plan) => plan.id === 'plus')!,
@@ -75,13 +75,24 @@ export function AccountPage() {
       signedInAt: new Date().toISOString(),
     };
     const persistent = mode === 'register' || form.get('remember') === 'on';
-    savePreviewAccountSession(nextSession, persistent);
-    setSession(nextSession);
-    navigate('/?welcome=1', { replace: true });
+    const storageMode = savePreviewAccountSession(nextSession, persistent);
+    if (!storageMode) {
+      setStatus('浏览器阻止了本机存储，请允许站点数据后再继续登录。');
+      return;
+    }
+    navigate(
+      `/?welcome=1${persistent && storageMode === 'session' ? '&session=temporary' : ''}`,
+      { replace: true },
+    );
   };
 
   return (
-    <main className="account-page">
+    <main
+      id="main-content"
+      data-route="/account"
+      tabIndex={-1}
+      className="account-page"
+    >
       <ScenePicture
         scene={scene}
         className="account-backdrop"
@@ -146,7 +157,6 @@ export function AccountPage() {
                   className="account-signout"
                   onClick={() => {
                     clearPreviewAccountSession();
-                    setSession(null);
                     setStatus('已退出本地预览账号。');
                   }}
                 >
@@ -162,6 +172,7 @@ export function AccountPage() {
               <button
                 type="button"
                 className={mode === 'login' ? 'selected' : ''}
+                aria-pressed={mode === 'login'}
                 onClick={() => {
                   setMode('login');
                   setStatus('');
@@ -172,6 +183,7 @@ export function AccountPage() {
               <button
                 type="button"
                 className={mode === 'register' ? 'selected' : ''}
+                aria-pressed={mode === 'register'}
                 onClick={() => {
                   setMode('register');
                   setStatus('');

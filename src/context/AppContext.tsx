@@ -7,7 +7,15 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { db, loadAll, saveActiveTimer, savePreferences } from '../db';
+import { liveQuery } from 'dexie';
+import {
+  createActiveTimer,
+  db,
+  finalizeActiveTimer,
+  loadAll,
+  savePreferences,
+  updateActiveTimer,
+} from '../db';
 import { normalizePreferences } from '../data/scenes';
 import type {
   ActiveTimer,
@@ -17,10 +25,16 @@ import type {
   StartFocusInput,
   Task,
 } from '../types';
-import { elapsedSeconds, monotonicAnchor, todayKey } from '../utils';
+import {
+  closeRunningInterval,
+  elapsedSeconds,
+  monotonicAnchor,
+  todayKey,
+} from '../utils';
 
 interface AppContextValue {
   ready: boolean;
+  storageError: string | null;
   tasks: Task[];
   sessions: FocusSession[];
   preferences: Preferences;
@@ -45,29 +59,9 @@ interface AppContextValue {
 
 const AppContext = createContext<AppContextValue | null>(null);
 
-const closeRunningInterval = (
-  timer: ActiveTimer,
-  totalElapsedSeconds: number,
-) => {
-  if (!timer.focusIntervals || timer.runningSince === null) {
-    return timer.focusIntervals;
-  }
-  const liveSeconds = Math.max(
-    0,
-    totalElapsedSeconds - timer.accumulatedSeconds,
-  );
-  if (liveSeconds <= 0) return timer.focusIntervals;
-  return [
-    ...timer.focusIntervals,
-    {
-      startedAt: timer.runningSince,
-      endedAt: timer.runningSince + liveSeconds * 1000,
-    },
-  ];
-};
-
 export function AppProvider({ children }: PropsWithChildren) {
   const [ready, setReady] = useState(false);
+  const [storageError, setStorageError] = useState<string | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [sessions, setSessions] = useState<FocusSession[]>([]);
   const [preferences, setPreferencesState] =
@@ -75,34 +69,62 @@ export function AppProvider({ children }: PropsWithChildren) {
   const [activeTimer, setActiveTimer] = useState<ActiveTimer | null>(null);
 
   const refresh = useCallback(async () => {
-    const data = await loadAll();
-    setTasks(data.tasks);
-    setSessions(data.sessions);
-    setPreferencesState(data.preferences);
-    if (data.activeTimer?.status === 'running') {
-      const now = Date.now();
-      const recoveredElapsed = elapsedSeconds(data.activeTimer, now);
-      const rebased = {
-        ...data.activeTimer,
-        accumulatedSeconds: recoveredElapsed,
-        focusIntervals: closeRunningInterval(
-          data.activeTimer,
-          recoveredElapsed,
-        ),
-        runningSince: now,
-        ...monotonicAnchor(),
-      };
-      await saveActiveTimer(rebased);
-      setActiveTimer(rebased);
-    } else {
-      setActiveTimer(data.activeTimer);
+    setStorageError(null);
+    try {
+      const data = await loadAll();
+      setTasks(data.tasks);
+      setSessions(data.sessions);
+      setPreferencesState(data.preferences);
+      if (data.activeTimer?.status === 'running') {
+        const now = Date.now();
+        const recoveredElapsed = elapsedSeconds(data.activeTimer, now);
+        const rebased = {
+          ...data.activeTimer,
+          accumulatedSeconds: recoveredElapsed,
+          focusIntervals: closeRunningInterval(
+            data.activeTimer,
+            recoveredElapsed,
+          ),
+          runningSince: now,
+          ...monotonicAnchor(),
+        };
+        try {
+          const stored = await updateActiveTimer(
+            data.activeTimer.id,
+            data.activeTimer.revision ?? 0,
+            rebased,
+          );
+          setActiveTimer(stored);
+        } catch {
+          setActiveTimer((await db.active.get('current'))?.value ?? null);
+        }
+      } else {
+        setActiveTimer(data.activeTimer);
+      }
+    } catch {
+      setStorageError(
+        '浏览器暂时无法打开本机数据库。请允许站点存储空间，或关闭无痕模式后重试。',
+      );
+    } finally {
+      setReady(true);
     }
-    setReady(true);
   }, []);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (!ready || storageError) return;
+    const subscription = liveQuery(() => db.active.get('current')).subscribe({
+      next: (record) => setActiveTimer(record?.value ?? null),
+      error: () =>
+        setStorageError(
+          '本机计时状态同步失败。请保留当前页面并刷新，避免在多个标签页中重复开始专注。',
+        ),
+    });
+    return () => subscription.unsubscribe();
+  }, [ready, storageError]);
 
   const addTask = useCallback(
     async (title: string) => {
@@ -181,14 +203,15 @@ export function AppProvider({ children }: PropsWithChildren) {
 
   const updatePreferences = useCallback(async (next: Preferences) => {
     const normalized = normalizePreferences(next);
-    setPreferencesState(normalized);
     await savePreferences(normalized);
+    setPreferencesState(normalized);
   }, []);
 
   const startFocus = useCallback(async (input: StartFocusInput) => {
     const now = Date.now();
     const timer: ActiveTimer = {
       id: crypto.randomUUID(),
+      revision: 0,
       mode: input.mode,
       targetSeconds:
         input.mode === 'countdown' ? Math.max(60, input.minutes * 60) : null,
@@ -202,9 +225,9 @@ export function AppProvider({ children }: PropsWithChildren) {
       focusIntervals: [],
       ...monotonicAnchor(),
     };
-    await saveActiveTimer(timer);
-    setActiveTimer(timer);
-    return timer;
+    const storedTimer = await createActiveTimer(timer);
+    setActiveTimer(storedTimer);
+    return storedTimer;
   }, []);
 
   const pauseFocus = useCallback(async () => {
@@ -223,8 +246,12 @@ export function AppProvider({ children }: PropsWithChildren) {
       monotonicOrigin: null,
       monotonicSince: null,
     };
-    await saveActiveTimer(next);
-    setActiveTimer(next);
+    const stored = await updateActiveTimer(
+      activeTimer.id,
+      activeTimer.revision ?? 0,
+      next,
+    );
+    setActiveTimer(stored);
   }, [activeTimer]);
 
   const resumeFocus = useCallback(async () => {
@@ -235,16 +262,24 @@ export function AppProvider({ children }: PropsWithChildren) {
       status: 'running',
       ...monotonicAnchor(),
     };
-    await saveActiveTimer(next);
-    setActiveTimer(next);
+    const stored = await updateActiveTimer(
+      activeTimer.id,
+      activeTimer.revision ?? 0,
+      next,
+    );
+    setActiveTimer(stored);
   }, [activeTimer]);
 
   const changeActiveScene = useCallback(
     async (sceneId: string) => {
       if (!activeTimer) return;
       const next = { ...activeTimer, sceneId };
-      await saveActiveTimer(next);
-      setActiveTimer(next);
+      const stored = await updateActiveTimer(
+        activeTimer.id,
+        activeTimer.revision ?? 0,
+        next,
+      );
+      setActiveTimer(stored);
     },
     [activeTimer],
   );
@@ -252,12 +287,16 @@ export function AppProvider({ children }: PropsWithChildren) {
   const finishFocus = useCallback(
     async (status: SessionStatus, shouldSave: boolean) => {
       if (!activeTimer) return null;
-      const endedAt = Date.now();
-      const rawElapsed = elapsedSeconds(activeTimer, endedAt);
+      const finishRequestedAt = Math.max(Date.now(), activeTimer.startedAt);
+      const rawElapsed = elapsedSeconds(activeTimer, finishRequestedAt);
       const focusIntervals =
         activeTimer.status === 'running'
           ? closeRunningInterval(activeTimer, rawElapsed)
           : activeTimer.focusIntervals;
+      const endedAt = Math.max(
+        finishRequestedAt,
+        ...(focusIntervals ?? []).map((interval) => interval.endedAt),
+      );
       const focusedSeconds =
         activeTimer.mode === 'countdown' && status === 'completed'
           ? activeTimer.targetSeconds ?? rawElapsed
@@ -279,10 +318,18 @@ export function AppProvider({ children }: PropsWithChildren) {
           status,
           focusIntervals,
         };
-        await db.sessions.put(session);
-        setSessions((current) => [session!, ...current]);
       }
-      await saveActiveTimer(null);
+      await finalizeActiveTimer(
+        activeTimer.id,
+        activeTimer.revision ?? 0,
+        session,
+      );
+      if (session) {
+        setSessions((current) => [
+          session!,
+          ...current.filter(({ id }) => id !== session!.id),
+        ]);
+      }
       setActiveTimer(null);
       return session;
     },
@@ -299,6 +346,7 @@ export function AppProvider({ children }: PropsWithChildren) {
   const value = useMemo<AppContextValue>(
     () => ({
       ready,
+      storageError,
       tasks,
       sessions,
       preferences,
@@ -319,6 +367,7 @@ export function AppProvider({ children }: PropsWithChildren) {
     }),
     [
       ready,
+      storageError,
       tasks,
       sessions,
       preferences,

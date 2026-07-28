@@ -69,6 +69,31 @@ select:focus-visible {
   outline-offset: 3px;
 }
 
+.skip-link {
+  position: fixed;
+  z-index: 9999;
+  top: 12px;
+  left: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  color: #173a36;
+  background: rgba(255, 253, 247, 0.96);
+  box-shadow: 0 12px 36px rgba(11, 29, 26, 0.2);
+  transform: translateY(-180%);
+  transition: transform 160ms ease;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+.page-container:focus,
+.account-page:focus,
+.focus-screen:focus,
+.storage-error-page:focus {
+  outline: none;
+}
+
 a {
   color: inherit;
   text-decoration: none;
@@ -111,7 +136,8 @@ p {
 }
 
 .app-loading,
-.focus-loading {
+.focus-loading,
+.route-loading {
   width: 100vw;
   height: 100vh;
   display: grid;
@@ -122,6 +148,85 @@ p {
   background:
     radial-gradient(circle at 40% 20%, rgba(255, 255, 255, 0.8), transparent 40%),
     #e8e2d7;
+}
+
+.storage-error-page {
+  display: flex;
+  width: min(520px, calc(100% - 32px));
+  min-height: 100vh;
+  margin: 0 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink);
+  text-align: center;
+}
+
+.storage-error-page h1 {
+  margin: 26px 0 10px;
+  font-family: "STSong", "SimSun", serif;
+  font-size: clamp(28px, 5vw, 42px);
+}
+
+.storage-error-page p {
+  max-width: 440px;
+  color: var(--ink-soft);
+  line-height: 1.8;
+}
+
+.storage-error-page .primary-button {
+  margin-top: 10px;
+}
+
+.fatal-error-page {
+  min-height: 100vh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  padding: 28px;
+  color: var(--ink);
+  text-align: center;
+  background:
+    radial-gradient(circle at 25% 20%, rgba(189, 143, 82, 0.2), transparent 34%),
+    linear-gradient(145deg, #eff2eb, #e2e8df);
+}
+
+.fatal-error-page > span {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  border-radius: 20px;
+  color: #f7eedb;
+  background: var(--green);
+  font-family: var(--serif);
+  font-size: 24px;
+}
+
+.fatal-error-page h1,
+.fatal-error-page p {
+  margin: 0;
+}
+
+.fatal-error-page p {
+  max-width: 440px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.session-storage-notice {
+  width: min(720px, 100%);
+  margin: 0 auto 14px;
+  padding: 10px 13px;
+  border: 1px solid rgba(184, 137, 77, 0.2);
+  border-radius: 14px;
+  color: #6e593a;
+  background: rgba(251, 242, 222, 0.76);
+  box-shadow: var(--shadow-soft);
+  font-size: 10px;
+  line-height: 1.6;
+  text-align: center;
 }
 
 .loading-leaf {
@@ -139,7 +244,8 @@ p {
   animation: breathe 1.8s ease-in-out infinite;
 }
 
-.app-loading p {
+.app-loading p,
+.route-loading p {
   color: var(--ink-soft);
   font-size: 14px;
   letter-spacing: 0.08em;
@@ -2543,6 +2649,45 @@ input[type="range"]::-webkit-slider-thumb {
   transform: translateX(-50%);
 }
 
+.focus-operation-error {
+  position: absolute;
+  z-index: 18;
+  top: 140px;
+  left: 50%;
+  display: flex;
+  width: min(520px, calc(100% - 32px));
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px;
+  border-color: rgba(255, 219, 181, 0.34);
+  border-radius: 16px;
+  color: rgba(255, 249, 239, 0.92);
+  background: rgba(71, 39, 27, 0.54);
+  font-size: 10px;
+  line-height: 1.6;
+  transform: translateX(-50%);
+}
+
+.focus-operation-error button {
+  flex: 0 0 auto;
+  padding: 6px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 9px;
+  cursor: pointer;
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 9px;
+}
+
+.room-start-error {
+  margin: 8px 4px 0;
+  color: #8b4138;
+  font-size: 11px;
+  line-height: 1.55;
+  text-align: center;
+}
+
 .away-pause-card {
   position: absolute;
   z-index: 11;
@@ -4396,4 +4541,41 @@ input[type="range"]::-webkit-slider-thumb {
   .restore-sound {
     background: rgba(16, 29, 28, 0.88);
   }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.goal-textarea-label {
+  display: block;
+}
+
+.goal-section select:focus-visible,
+.goal-section textarea:focus-visible,
+.task-form input:focus-visible,
+.task-edit input:focus-visible {
+  outline: 2px solid rgba(184, 137, 77, 0.95);
+  outline-offset: 2px;
+  border-color: rgba(184, 137, 77, 0.82);
+  box-shadow: 0 0 0 4px rgba(184, 137, 77, 0.16);
+}
+
+.custom-time:focus-within,
+.number-control:focus-within {
+  border-color: rgba(184, 137, 77, 0.82);
+  box-shadow: 0 0 0 4px rgba(184, 137, 77, 0.16);
+}
+
+input[type="range"]:focus-visible {
+  outline: 2px solid rgba(184, 137, 77, 0.95);
+  outline-offset: 5px;
 }

@@ -59,6 +59,7 @@ export interface FocusSession {
 
 export interface ActiveTimer {
   id: string;
+  revision?: number;
   mode: TimerMode;
   targetSeconds: number | null;
   goalText: string;
@@ -109,6 +110,8 @@ export interface Scene {
   whisper: string;
   image: string;
   avif: string;
+  imageWidth: number;
+  imageHeight: number;
   poster: string;
   posterAvif: string;
   effect: SceneEffect;

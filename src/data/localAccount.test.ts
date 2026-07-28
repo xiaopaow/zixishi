@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   accountNameFromEmail,
   clearPreviewAccountSession,
@@ -47,5 +47,20 @@ describe('preview account session', () => {
     expect(accountNameFromEmail('quiet.reader@example.com')).toBe(
       'quiet.reader',
     );
+  });
+
+  it('fails gracefully when browser storage is unavailable', () => {
+    const previous = { ...account, name: '原账号' };
+    savePreviewAccountSession(previous, true);
+    const write = vi
+      .spyOn(Storage.prototype, 'setItem')
+      .mockImplementation(() => {
+        throw new DOMException('Blocked', 'SecurityError');
+      });
+
+    expect(() => savePreviewAccountSession(account, true)).not.toThrow();
+    expect(savePreviewAccountSession(account, true)).toBeNull();
+    expect(getPreviewAccountSession()?.name).toBe('原账号');
+    write.mockRestore();
   });
 });

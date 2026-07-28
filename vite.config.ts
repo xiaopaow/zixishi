@@ -40,16 +40,19 @@ export default defineConfig({
       workbox: {
         globPatterns: [
           '**/*.{js,css,html,svg,png}',
-          'scenes/*-poster.{webp,avif}',
+          'scenes/rain-study-poster.{webp,avif}',
         ],
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/scenes/'),
-            handler: 'CacheFirst',
+            handler: 'StaleWhileRevalidate',
             options: {
-              cacheName: 'qishi-scenes-v1',
+              cacheName: 'qishi-scenes-v2',
+              cacheableResponse: {
+                statuses: [0, 200]
+              },
               expiration: {
-                maxEntries: 12,
+                maxEntries: 24,
                 maxAgeSeconds: 60 * 60 * 24 * 30
               }
             }
@@ -62,7 +65,7 @@ export default defineConfig({
     // Sites' vinext-compatible runtime binds static assets from dist/client
     // while loading the worker entrypoint from dist/server/index.js.
     outDir: 'dist/client',
-    sourcemap: true,
+    sourcemap: false,
     target: 'es2022'
   }
 });
