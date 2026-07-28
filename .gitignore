@@ -1,0 +1,10 @@
+node_modules
+dist
+.vite
+coverage
+*.log
+*.tsbuildinfo
+.playwright-cli
+output
+.vite-dev*
+.DS_Store
