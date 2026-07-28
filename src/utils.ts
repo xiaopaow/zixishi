@@ -10,11 +10,40 @@ export const todayKey = (date = new Date()) => {
 export const dateKeyFromTimestamp = (timestamp: number) =>
   todayKey(new Date(timestamp));
 
-export const elapsedSeconds = (timer: ActiveTimer, now = Date.now()) => {
-  const live =
-    timer.status === 'running' && timer.runningSince
-      ? Math.max(0, (now - timer.runningSince) / 1000)
-      : 0;
+const readMonotonicClock = () => {
+  if (typeof performance === 'undefined') return null;
+  return {
+    origin: performance.timeOrigin,
+    now: performance.now(),
+  };
+};
+
+export const monotonicAnchor = () => {
+  const clock = readMonotonicClock();
+  return {
+    monotonicOrigin: clock?.origin ?? null,
+    monotonicSince: clock?.now ?? null,
+  };
+};
+
+export const elapsedSeconds = (
+  timer: ActiveTimer,
+  now = Date.now(),
+  monotonic = readMonotonicClock(),
+) => {
+  let live = 0;
+  if (timer.status === 'running' && timer.runningSince !== null) {
+    const sameDocumentClock =
+      monotonic &&
+      timer.monotonicOrigin !== null &&
+      timer.monotonicOrigin !== undefined &&
+      timer.monotonicSince !== null &&
+      timer.monotonicSince !== undefined &&
+      Math.abs(monotonic.origin - timer.monotonicOrigin) < 1;
+    live = sameDocumentClock
+      ? Math.max(0, (monotonic.now - timer.monotonicSince!) / 1000)
+      : Math.max(0, (now - timer.runningSince) / 1000);
+  }
   return Math.max(0, timer.accumulatedSeconds + live);
 };
 
@@ -54,20 +83,72 @@ export const chineseDate = (date = new Date()) =>
     weekday: 'long',
   }).format(date);
 
+export const sessionDayAllocations = (session: FocusSession) => {
+  const focusedSeconds = Math.max(0, session.focusedSeconds);
+  if (focusedSeconds === 0) return new Map<string, number>();
+
+  const end = Math.max(session.startedAt, session.endedAt);
+  const start = Math.min(session.startedAt, session.endedAt);
+  if (end <= start) {
+    return new Map([[dateKeyFromTimestamp(session.endedAt), focusedSeconds]]);
+  }
+
+  const overlaps: Array<{ key: string; milliseconds: number }> = [];
+  let cursor = start;
+  while (cursor < end) {
+    const current = new Date(cursor);
+    const nextMidnight = new Date(
+      current.getFullYear(),
+      current.getMonth(),
+      current.getDate() + 1,
+    ).getTime();
+    const boundary = Math.min(end, nextMidnight);
+    overlaps.push({
+      key: dateKeyFromTimestamp(cursor),
+      milliseconds: Math.max(0, boundary - cursor),
+    });
+    cursor = boundary;
+  }
+
+  const wallMilliseconds = overlaps.reduce(
+    (sum, item) => sum + item.milliseconds,
+    0,
+  );
+  if (wallMilliseconds <= 0) {
+    return new Map([[dateKeyFromTimestamp(session.endedAt), focusedSeconds]]);
+  }
+
+  const result = new Map<string, number>();
+  let allocated = 0;
+  overlaps.forEach((item, index) => {
+    const seconds =
+      index === overlaps.length - 1
+        ? focusedSeconds - allocated
+        : focusedSeconds * (item.milliseconds / wallMilliseconds);
+    result.set(item.key, (result.get(item.key) ?? 0) + seconds);
+    allocated += seconds;
+  });
+  return result;
+};
+
+export const dailyFocusTotals = (sessions: FocusSession[]) => {
+  const totals = new Map<string, number>();
+  sessions.forEach((session) => {
+    sessionDayAllocations(session).forEach((seconds, key) => {
+      totals.set(key, (totals.get(key) ?? 0) + seconds);
+    });
+  });
+  return totals;
+};
+
 export const dayTotal = (sessions: FocusSession[], key = todayKey()) =>
-  sessions
-    .filter((session) => dateKeyFromTimestamp(session.endedAt) === key)
-    .reduce((sum, session) => sum + session.focusedSeconds, 0);
+  dailyFocusTotals(sessions).get(key) ?? 0;
 
 export const totalSeconds = (sessions: FocusSession[]) =>
   sessions.reduce((sum, session) => sum + session.focusedSeconds, 0);
 
 export const calculateStreak = (sessions: FocusSession[], now = new Date()) => {
-  const totals = new Map<string, number>();
-  sessions.forEach((session) => {
-    const key = dateKeyFromTimestamp(session.endedAt);
-    totals.set(key, (totals.get(key) ?? 0) + session.focusedSeconds);
-  });
+  const totals = dailyFocusTotals(sessions);
 
   let cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   if ((totals.get(todayKey(cursor)) ?? 0) < 600) {

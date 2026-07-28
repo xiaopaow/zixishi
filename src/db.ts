@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
-import { defaultPreferences } from './data/scenes';
+import { normalizePreferences } from './data/scenes';
 import type {
   ActiveTimer,
   BackupPayload,
@@ -32,6 +32,21 @@ class QishiDatabase extends Dexie {
       settings: 'key',
       active: 'key',
     });
+    this.version(2)
+      .stores({
+        tasks: 'id, date, order, completedAt',
+        sessions: 'id, endedAt, sceneId, status, taskId',
+        settings: 'key',
+        active: 'key',
+      })
+      .upgrade(async (transaction) => {
+        await transaction
+          .table<SettingRecord>('settings')
+          .toCollection()
+          .modify((record) => {
+            record.value = normalizePreferences(record.value);
+          });
+      });
   }
 }
 
@@ -47,13 +62,16 @@ export const loadAll = async () => {
   return {
     tasks,
     sessions,
-    preferences: setting?.value ?? defaultPreferences,
+    preferences: normalizePreferences(setting?.value),
     activeTimer: active?.value ?? null,
   };
 };
 
 export const savePreferences = (preferences: Preferences) =>
-  db.settings.put({ key: 'preferences', value: preferences });
+  db.settings.put({
+    key: 'preferences',
+    value: normalizePreferences(preferences),
+  });
 
 export const saveActiveTimer = (timer: ActiveTimer | null) =>
   timer
@@ -63,7 +81,7 @@ export const saveActiveTimer = (timer: ActiveTimer | null) =>
 export const exportData = async (): Promise<BackupPayload> => {
   const { tasks, sessions, preferences } = await loadAll();
   return {
-    version: 1,
+    version: 2,
     exportedAt: Date.now(),
     tasks,
     sessions,
@@ -71,14 +89,50 @@ export const exportData = async (): Promise<BackupPayload> => {
   };
 };
 
+const isFiniteNumber = (value: unknown) =>
+  typeof value === 'number' && Number.isFinite(value);
+
+const isTask = (value: unknown): value is Task => {
+  if (!value || typeof value !== 'object') return false;
+  const task = value as Partial<Task>;
+  return (
+    typeof task.id === 'string' &&
+    typeof task.title === 'string' &&
+    typeof task.date === 'string' &&
+    isFiniteNumber(task.order) &&
+    isFiniteNumber(task.createdAt) &&
+    (task.completedAt === null || isFiniteNumber(task.completedAt))
+  );
+};
+
+const isSession = (value: unknown): value is FocusSession => {
+  if (!value || typeof value !== 'object') return false;
+  const session = value as Partial<FocusSession>;
+  return (
+    typeof session.id === 'string' &&
+    (session.mode === 'countdown' || session.mode === 'stopwatch') &&
+    (session.targetSeconds === null || isFiniteNumber(session.targetSeconds)) &&
+    isFiniteNumber(session.focusedSeconds) &&
+    typeof session.goalText === 'string' &&
+    (session.taskId === null || typeof session.taskId === 'string') &&
+    typeof session.sceneId === 'string' &&
+    isFiniteNumber(session.startedAt) &&
+    isFiniteNumber(session.endedAt) &&
+    (session.status === 'completed' || session.status === 'abandoned')
+  );
+};
+
 const isBackup = (value: unknown): value is BackupPayload => {
   if (!value || typeof value !== 'object') return false;
   const payload = value as Partial<BackupPayload>;
   return (
-    payload.version === 1 &&
+    (payload.version === 1 || payload.version === 2) &&
     Array.isArray(payload.tasks) &&
+    payload.tasks.every(isTask) &&
     Array.isArray(payload.sessions) &&
-    Boolean(payload.preferences)
+    payload.sessions.every(isSession) &&
+    Boolean(payload.preferences) &&
+    typeof payload.preferences === 'object'
   );
 };
 
@@ -95,7 +149,7 @@ export const importData = async (value: unknown) => {
     ]);
     await db.tasks.bulkPut(value.tasks);
     await db.sessions.bulkPut(value.sessions);
-    await savePreferences(value.preferences);
+    await savePreferences(normalizePreferences(value.preferences));
   });
 };
 

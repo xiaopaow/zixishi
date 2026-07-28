@@ -8,7 +8,7 @@ import {
   useState,
 } from 'react';
 import { db, loadAll, saveActiveTimer, savePreferences } from '../db';
-import { defaultPreferences } from '../data/scenes';
+import { normalizePreferences } from '../data/scenes';
 import type {
   ActiveTimer,
   FocusSession,
@@ -17,7 +17,7 @@ import type {
   StartFocusInput,
   Task,
 } from '../types';
-import { elapsedSeconds, todayKey } from '../utils';
+import { elapsedSeconds, monotonicAnchor, todayKey } from '../utils';
 
 interface AppContextValue {
   ready: boolean;
@@ -50,7 +50,7 @@ export function AppProvider({ children }: PropsWithChildren) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [sessions, setSessions] = useState<FocusSession[]>([]);
   const [preferences, setPreferencesState] =
-    useState<Preferences>(defaultPreferences);
+    useState<Preferences>(() => normalizePreferences(undefined));
   const [activeTimer, setActiveTimer] = useState<ActiveTimer | null>(null);
 
   const refresh = useCallback(async () => {
@@ -58,7 +58,21 @@ export function AppProvider({ children }: PropsWithChildren) {
     setTasks(data.tasks);
     setSessions(data.sessions);
     setPreferencesState(data.preferences);
-    setActiveTimer(data.activeTimer);
+    if (
+      data.activeTimer?.status === 'running' &&
+      data.activeTimer.runningSince !== null &&
+      data.activeTimer.runningSince > Date.now() + 5 * 1000
+    ) {
+      const rebased = {
+        ...data.activeTimer,
+        runningSince: Date.now(),
+        ...monotonicAnchor(),
+      };
+      await saveActiveTimer(rebased);
+      setActiveTimer(rebased);
+    } else {
+      setActiveTimer(data.activeTimer);
+    }
     setReady(true);
   }, []);
 
@@ -91,9 +105,12 @@ export function AppProvider({ children }: PropsWithChildren) {
   const renameTask = useCallback(async (id: string, title: string) => {
     const clean = title.trim();
     if (!clean) return;
-    await db.tasks.update(id, { title: clean.slice(0, 80) });
+    const nextTitle = clean.slice(0, 80);
+    await db.tasks.update(id, { title: nextTitle });
     setTasks((current) =>
-      current.map((task) => (task.id === id ? { ...task, title: clean } : task)),
+      current.map((task) =>
+        task.id === id ? { ...task, title: nextTitle } : task,
+      ),
     );
   }, []);
 
@@ -139,8 +156,9 @@ export function AppProvider({ children }: PropsWithChildren) {
   );
 
   const updatePreferences = useCallback(async (next: Preferences) => {
-    setPreferencesState(next);
-    await savePreferences(next);
+    const normalized = normalizePreferences(next);
+    setPreferencesState(normalized);
+    await savePreferences(normalized);
   }, []);
 
   const startFocus = useCallback(async (input: StartFocusInput) => {
@@ -157,6 +175,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       runningSince: now,
       accumulatedSeconds: 0,
       status: 'running',
+      ...monotonicAnchor(),
     };
     await saveActiveTimer(timer);
     setActiveTimer(timer);
@@ -165,11 +184,14 @@ export function AppProvider({ children }: PropsWithChildren) {
 
   const pauseFocus = useCallback(async () => {
     if (!activeTimer || activeTimer.status !== 'running') return;
+    const now = Date.now();
     const next: ActiveTimer = {
       ...activeTimer,
-      accumulatedSeconds: elapsedSeconds(activeTimer),
+      accumulatedSeconds: elapsedSeconds(activeTimer, now),
       runningSince: null,
       status: 'paused',
+      monotonicOrigin: null,
+      monotonicSince: null,
     };
     await saveActiveTimer(next);
     setActiveTimer(next);
@@ -181,6 +203,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       ...activeTimer,
       runningSince: Date.now(),
       status: 'running',
+      ...monotonicAnchor(),
     };
     await saveActiveTimer(next);
     setActiveTimer(next);
@@ -199,7 +222,8 @@ export function AppProvider({ children }: PropsWithChildren) {
   const finishFocus = useCallback(
     async (status: SessionStatus, shouldSave: boolean) => {
       if (!activeTimer) return null;
-      const rawElapsed = elapsedSeconds(activeTimer);
+      const endedAt = Date.now();
+      const rawElapsed = elapsedSeconds(activeTimer, endedAt);
       const focusedSeconds =
         activeTimer.mode === 'countdown' && status === 'completed'
           ? activeTimer.targetSeconds ?? rawElapsed
@@ -213,9 +237,11 @@ export function AppProvider({ children }: PropsWithChildren) {
           focusedSeconds: Math.floor(focusedSeconds),
           goalText: activeTimer.goalText,
           taskId: activeTimer.taskId,
+          taskTitle:
+            tasks.find((task) => task.id === activeTimer.taskId)?.title ?? null,
           sceneId: activeTimer.sceneId,
           startedAt: activeTimer.startedAt,
-          endedAt: Date.now(),
+          endedAt,
           status,
         };
         await db.sessions.put(session);
@@ -225,13 +251,13 @@ export function AppProvider({ children }: PropsWithChildren) {
       setActiveTimer(null);
       return session;
     },
-    [activeTimer],
+    [activeTimer, tasks],
   );
 
   const resetState = useCallback(() => {
     setTasks([]);
     setSessions([]);
-    setPreferencesState(defaultPreferences);
+    setPreferencesState(normalizePreferences(undefined));
     setActiveTimer(null);
   }, []);
 

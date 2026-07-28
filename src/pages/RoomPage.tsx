@@ -11,9 +11,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { audioEngine } from '../audio/audioEngine';
 import { SceneCard } from '../components/SceneCard';
+import { ScenePicture } from '../components/ScenePicture';
 import { SoundMixer } from '../components/SoundMixer';
 import { useApp } from '../context/AppContext';
-import { getScene, scenes } from '../data/scenes';
+import { getScene, scenes, soundForScene } from '../data/scenes';
 import type { TimerMode } from '../types';
 import { todayKey } from '../utils';
 
@@ -54,11 +55,10 @@ export function RoomPage() {
   }, [queryTask, tasks]);
 
   const selectScene = async (sceneId: string) => {
-    const scene = getScene(sceneId);
     const next = {
       ...preferences,
       selectedSceneId: sceneId,
-      sound: structuredClone(scene.recommended),
+      sound: soundForScene(preferences, sceneId),
     };
     await updatePreferences(next);
     audioEngine.apply(next.sound);
@@ -68,7 +68,12 @@ export function RoomPage() {
     if (starting) return;
     setStarting(true);
     try {
-      await audioEngine.start(preferences.sound);
+      try {
+        await audioEngine.start(preferences.sound);
+      } catch {
+        // Browsers may reject AudioContext resume before a trusted gesture.
+        // The timer still starts and the focus screen offers a retry button.
+      }
       await updatePreferences({
         ...preferences,
         defaultMinutes: minutes,
@@ -105,7 +110,7 @@ export function RoomPage() {
         <div className="scene-library">
           <div className="scene-library-heading">
             <div>
-              <span>场景 · 04</span>
+              <span>场景 · {String(scenes.length).padStart(2, '0')}</span>
               <strong>东方疗愈空间</strong>
             </div>
             <small>原创插画 + 实时微动效</small>
@@ -124,7 +129,7 @@ export function RoomPage() {
 
         <aside className="glass-card setup-panel">
           <div className="setup-scene-summary">
-            <img src={selectedScene.poster} alt="" />
+            <ScenePicture scene={selectedScene} variant="poster" alt="" />
             <div>
               <small>当前场景</small>
               <strong>{selectedScene.name}</strong>
@@ -231,6 +236,7 @@ export function RoomPage() {
             <SoundMixer
               preferences={preferences}
               onChange={(next) => void updatePreferences(next)}
+              sceneId={selectedScene.id}
               dense
             />
           </div>

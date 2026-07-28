@@ -38,7 +38,10 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png}', 'scenes/*-poster.webp'],
+        globPatterns: [
+          '**/*.{js,css,html,svg,png}',
+          'scenes/*-poster.{webp,avif}',
+        ],
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/scenes/'),

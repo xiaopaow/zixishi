@@ -3,7 +3,7 @@ export type TimerStyle = 'large' | 'compact';
 export type TimerStatus = 'running' | 'paused';
 export type SessionStatus = 'completed' | 'abandoned';
 export type MusicType = 'piano' | 'lofi' | 'none';
-export type SceneEffect = 'rain' | 'mist' | 'city' | 'sea';
+export type SceneEffect = 'rain' | 'mist' | 'city' | 'sea' | 'snow';
 export type Quality = 'high' | 'low';
 
 export type AmbienceKey =
@@ -30,6 +30,7 @@ export interface FocusSession {
   focusedSeconds: number;
   goalText: string;
   taskId: string | null;
+  taskTitle?: string | null;
   sceneId: string;
   startedAt: number;
   endedAt: number;
@@ -47,6 +48,14 @@ export interface ActiveTimer {
   runningSince: number | null;
   accumulatedSeconds: number;
   status: TimerStatus;
+  /**
+   * Same-document monotonic clock anchor. It prevents a manual system-clock
+   * adjustment from jumping an active timer while the page remains open.
+   * Older persisted timers legitimately omit these fields and fall back to
+   * wall-clock recovery.
+   */
+  monotonicOrigin?: number | null;
+  monotonicSince?: number | null;
 }
 
 export interface SoundSettings {
@@ -61,6 +70,7 @@ export interface Preferences {
   timerStyle: TimerStyle;
   selectedSceneId: string;
   sound: SoundSettings;
+  sceneSounds: Record<string, SoundSettings>;
   quality: Quality;
   motionEnabled: boolean;
   notificationsEnabled: boolean;
@@ -73,8 +83,14 @@ export interface Scene {
   description: string;
   whisper: string;
   image: string;
+  avif: string;
   poster: string;
+  posterAvif: string;
   effect: SceneEffect;
+  details?: {
+    steam?: Array<{ x: number; y: number; scale?: number }>;
+    glow?: { x: number; y: number; size?: number; color?: string };
+  };
   palette: {
     primary: string;
     accent: string;
@@ -92,7 +108,7 @@ export interface StartFocusInput {
 }
 
 export interface BackupPayload {
-  version: 1;
+  version: 1 | 2;
   exportedAt: number;
   tasks: Task[];
   sessions: FocusSession[];

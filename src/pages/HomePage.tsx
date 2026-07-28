@@ -17,8 +17,9 @@ import {
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { ScenePicture } from '../components/ScenePicture';
 import { useApp } from '../context/AppContext';
-import { getScene, scenes } from '../data/scenes';
+import { getScene, scenes, soundForScene } from '../data/scenes';
 import {
   calculateStreak,
   chineseDate,
@@ -101,7 +102,11 @@ export function HomePage() {
 
       <section className="home-grid">
         <article className="glass-card focus-hero">
-          <img src={selectedScene.image} alt={selectedScene.name} />
+          <ScenePicture
+            scene={selectedScene}
+            alt={selectedScene.name}
+            fallbackToPoster
+          />
           <div className="focus-hero-overlay" />
           <div className="focus-hero-copy">
             <span className="eyebrow light"><Sparkles size={14} /> 今日推荐</span>
@@ -127,11 +132,11 @@ export function HomePage() {
                   void updatePreferences({
                     ...preferences,
                     selectedSceneId: scene.id,
-                    sound: structuredClone(scene.recommended),
+                    sound: soundForScene(preferences, scene.id),
                   })
                 }
               >
-                <img src={scene.poster} alt="" />
+                <ScenePicture scene={scene} variant="poster" alt="" />
               </button>
             ))}
           </div>
@@ -242,7 +247,7 @@ export function HomePage() {
         <article className="glass-card mini-scene-list">
           <div className="section-heading">
             <div>
-              <span className="eyebrow">四时之景</span>
+              <span className="eyebrow">五境流光</span>
               <h2>换一种心境</h2>
             </div>
             <Link to="/room">全部场景 <ChevronRight size={15} /></Link>
@@ -256,12 +261,17 @@ export function HomePage() {
                   void updatePreferences({
                     ...preferences,
                     selectedSceneId: scene.id,
-                    sound: structuredClone(scene.recommended),
+                    sound: soundForScene(preferences, scene.id),
                   });
                   navigate('/room');
                 }}
               >
-                <img src={scene.poster} alt="" loading="lazy" />
+                <ScenePicture
+                  scene={scene}
+                  variant="poster"
+                  alt=""
+                  loading="lazy"
+                />
                 <span>{scene.shortName}</span>
               </button>
             ))}

@@ -51,7 +51,11 @@ class QishiAudioEngine {
     this.master.gain.cancelScheduledValues(this.context.currentTime);
     this.master.gain.setTargetAtTime(0.0001, this.context.currentTime, 0.18);
     await new Promise((resolve) => window.setTimeout(resolve, 650));
-    await this.context.suspend();
+    try {
+      await this.context.suspend();
+    } catch {
+      // Audio is optional; policy changes must never block the focus workflow.
+    }
   }
 
   async fadeIn(settings: SoundSettings) {

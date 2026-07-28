@@ -1,5 +1,6 @@
 import { Check, Sparkles } from 'lucide-react';
 import type { Scene } from '../types';
+import { ScenePicture } from './ScenePicture';
 
 interface SceneCardProps {
   scene: Scene;
@@ -21,7 +22,7 @@ export function SceneCard({
       onClick={onSelect}
       aria-pressed={selected}
     >
-      <img src={scene.poster} alt="" loading="lazy" />
+      <ScenePicture scene={scene} variant="poster" alt="" loading="lazy" />
       <span className="scene-card-shade" />
       <span className="scene-card-copy">
         <small><Sparkles size={12} /> 原创场景</small>

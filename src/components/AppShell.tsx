@@ -29,7 +29,9 @@ export function AppShell() {
   return (
     <div
       className="app-shell"
-      style={{ '--shell-wallpaper': `url(${scene.poster})` } as React.CSSProperties}
+      style={{
+        '--shell-wallpaper': `image-set(url("${scene.posterAvif}") type("image/avif"), url("${scene.poster}") type("image/webp"))`,
+      } as React.CSSProperties}
     >
       <div className="shell-backdrop" aria-hidden="true" />
       <header className="topbar">

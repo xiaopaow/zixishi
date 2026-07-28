@@ -6,6 +6,7 @@ import {
   elapsedSeconds,
   formatClock,
   monthCalendar,
+  sessionDayAllocations,
   todayKey,
 } from './utils';
 
@@ -58,6 +59,29 @@ describe('timer utilities', () => {
     expect(elapsedSeconds(timer, 99_000)).toBe(302);
     expect(formatClock(302)).toBe('05:02');
   });
+
+  it('uses the monotonic clock during same-document system-time changes', () => {
+    const timer: ActiveTimer = {
+      id: 'clock-safe',
+      mode: 'countdown',
+      targetSeconds: 1500,
+      goalText: '读书',
+      taskId: null,
+      sceneId: 'rain-study',
+      startedAt: 1_000,
+      runningSince: 10_000,
+      accumulatedSeconds: 90,
+      status: 'running',
+      monotonicOrigin: 500,
+      monotonicSince: 20_000,
+    };
+    expect(
+      elapsedSeconds(timer, 3_610_000, {
+        origin: 500,
+        now: 50_000,
+      }),
+    ).toBe(120);
+  });
 });
 
 describe('focus statistics', () => {
@@ -82,6 +106,17 @@ describe('focus statistics', () => {
       session(new Date(2026, 6, 27, 9).getTime(), 500),
     ];
     expect(dayTotal(sessions, todayKey(date))).toBe(900);
+  });
+
+  it('allocates a cross-midnight session to both local days', () => {
+    const endedAt = new Date(2026, 6, 29, 0, 10).getTime();
+    const crossMidnight = session(endedAt, 20 * 60);
+    const allocations = sessionDayAllocations(crossMidnight);
+
+    expect(allocations.get('2026-07-28')).toBe(600);
+    expect(allocations.get('2026-07-29')).toBe(600);
+    expect(dayTotal([crossMidnight], '2026-07-28')).toBe(600);
+    expect(dayTotal([crossMidnight], '2026-07-29')).toBe(600);
   });
 
   it('builds complete Monday-first calendar rows', () => {

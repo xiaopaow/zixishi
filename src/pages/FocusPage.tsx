@@ -23,7 +23,7 @@ import { SceneBackground } from '../components/SceneBackground';
 import { SceneCard } from '../components/SceneCard';
 import { SoundMixer } from '../components/SoundMixer';
 import { useApp } from '../context/AppContext';
-import { getScene, scenes } from '../data/scenes';
+import { getScene, scenes, soundForScene } from '../data/scenes';
 import type { FocusSession } from '../types';
 import { elapsedSeconds, formatClock, formatMinutes } from '../utils';
 
@@ -106,16 +106,44 @@ export function FocusPage() {
   }, [preferences.sound]);
 
   useEffect(() => {
+    let disposed = false;
     const acquire = async () => {
+      if (
+        disposed ||
+        activeTimer?.status !== 'running' ||
+        document.visibilityState !== 'visible' ||
+        wakeLock.current
+      ) {
+        return;
+      }
       try {
         const nav = navigator as unknown as WakeLockNavigator;
-        wakeLock.current = await nav.wakeLock?.request('screen') ?? null;
+        const sentinel = await nav.wakeLock?.request('screen');
+        if (disposed) {
+          await sentinel?.release();
+          return;
+        }
+        wakeLock.current = sentinel ?? null;
       } catch {
         wakeLock.current = null;
       }
     };
-    if (activeTimer?.status === 'running') void acquire();
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void acquire();
+      } else {
+        const sentinel = wakeLock.current;
+        wakeLock.current = null;
+        void sentinel?.release();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    void acquire();
     return () => {
+      disposed = true;
+      document.removeEventListener('visibilitychange', handleVisibility);
       void wakeLock.current?.release();
       wakeLock.current = null;
     };
@@ -127,10 +155,14 @@ export function FocusPage() {
       'Notification' in window &&
       Notification.permission === 'granted'
     ) {
-      new Notification('这一段专注完成了', {
-        body: activeTimer?.goalText ?? '你把时间认真地放在了重要的事情上。',
-        icon: '/icons/icon-192.png',
-      });
+      try {
+        new Notification('这一段专注完成了', {
+          body: activeTimer?.goalText ?? '你把时间认真地放在了重要的事情上。',
+          icon: '/icons/icon-192.png',
+        });
+      } catch {
+        // Browser or operating-system policy may change after permission.
+      }
     }
   }, [preferences.notificationsEnabled, activeTimer?.goalText]);
 
@@ -163,15 +195,23 @@ export function FocusPage() {
       setSoundReady(false);
     } else {
       await resumeFocus();
-      await audioEngine.fadeIn(preferences.sound);
-      setSoundReady(true);
+      try {
+        await audioEngine.fadeIn(preferences.sound);
+        setSoundReady(true);
+      } catch {
+        setSoundReady(false);
+      }
     }
     revealControls();
   };
 
   const resumeSound = async () => {
-    await audioEngine.fadeIn(preferences.sound);
-    setSoundReady(true);
+    try {
+      await audioEngine.fadeIn(preferences.sound);
+      setSoundReady(true);
+    } catch {
+      setSoundReady(false);
+    }
   };
 
   const end = async (save: boolean) => {
@@ -188,24 +228,31 @@ export function FocusPage() {
   };
 
   const selectScene = async (sceneId: string) => {
-    const nextScene = getScene(sceneId);
     await changeActiveScene(sceneId);
     const next = {
       ...preferences,
       selectedSceneId: sceneId,
-      sound: structuredClone(nextScene.recommended),
+      sound: soundForScene(preferences, sceneId),
     };
     await updatePreferences(next);
-    await audioEngine.fadeIn(next.sound);
-    setSoundReady(true);
+    try {
+      await audioEngine.fadeIn(next.sound);
+      setSoundReady(true);
+    } catch {
+      setSoundReady(false);
+    }
     setScenesOpen(false);
   };
 
   const toggleFullscreen = async () => {
-    if (!document.fullscreenElement) {
-      await document.documentElement.requestFullscreen?.();
-    } else {
-      await document.exitFullscreen?.();
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen?.();
+      } else {
+        await document.exitFullscreen?.();
+      }
+    } catch {
+      // Fullscreen is optional and can be rejected by browser policy.
     }
   };
 
@@ -297,6 +344,7 @@ export function FocusPage() {
           <SoundMixer
             preferences={preferences}
             onChange={(next) => void updatePreferences(next)}
+            sceneId={scene.id}
           />
           <button type="button" className="primary-button modal-done" onClick={() => setSoundOpen(false)}>
             <Check size={17} /> 调整好了

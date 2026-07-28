@@ -8,6 +8,14 @@ interface Particle {
   size: number;
   alpha: number;
   drift: number;
+  phase: number;
+}
+
+interface Twinkle {
+  x: number;
+  y: number;
+  size: number;
+  phase: number;
 }
 
 interface AtmosphereCanvasProps {
@@ -32,23 +40,38 @@ export function AtmosphereCanvas({
     let width = 0;
     let height = 0;
     let particles: Particle[] = [];
+    let twinkles: Twinkle[] = [];
     const count = quality === 'high' ? 92 : 42;
 
     const seedParticles = () => {
       particles = Array.from({ length: count }, () => ({
-        x: Math.random() * width,
-        y: Math.random() * height,
+        x: Math.random() * width * (effect === 'snow' ? 0.82 : 1),
+        y: Math.random() * height * (effect === 'snow' ? 0.82 : 1),
         speed:
           effect === 'rain' || effect === 'city'
             ? 4 + Math.random() * 7
+            : effect === 'snow'
+              ? 0.3 + Math.random() * 0.75
             : 0.12 + Math.random() * 0.45,
         size:
           effect === 'rain' || effect === 'city'
             ? 8 + Math.random() * 18
+            : effect === 'snow'
+              ? 0.8 + Math.random() * 2.3
             : 12 + Math.random() * 54,
         alpha: 0.05 + Math.random() * 0.2,
         drift: -0.25 + Math.random() * 0.5,
+        phase: Math.random() * Math.PI * 2,
       }));
+      twinkles = Array.from(
+        { length: quality === 'high' ? 26 : 12 },
+        () => ({
+          x: width * (0.43 + Math.random() * 0.53),
+          y: height * (0.38 + Math.random() * 0.36),
+          size: 0.6 + Math.random() * 1.4,
+          phase: Math.random() * Math.PI * 2,
+        }),
+      );
     };
 
     const resize = () => {
@@ -122,12 +145,44 @@ export function AtmosphereCanvas({
       });
     };
 
+    const drawCityLights = () => {
+      twinkles.forEach((light) => {
+        const pulse = 0.5 + Math.sin(frame * 0.035 + light.phase) * 0.5;
+        context.fillStyle = `rgba(244,187,104,${0.035 + pulse * 0.18})`;
+        context.fillRect(light.x, light.y, light.size, light.size * 0.72);
+      });
+    };
+
+    const drawSnow = () => {
+      particles.forEach((particle) => {
+        const pulse = 0.72 + Math.sin(frame * 0.025 + particle.phase) * 0.28;
+        context.fillStyle = `rgba(238,248,255,${(particle.alpha + 0.08) * pulse})`;
+        context.beginPath();
+        context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        context.fill();
+        particle.x += particle.drift * 0.65;
+        particle.y += particle.speed;
+        if (
+          particle.y > height * 0.82 ||
+          particle.x < 0 ||
+          particle.x > width * 0.82
+        ) {
+          particle.x = Math.random() * width * 0.82;
+          particle.y = -8;
+        }
+      });
+    };
+
     const render = () => {
       context.clearRect(0, 0, width, height);
       if (effect === 'rain') drawRain();
-      if (effect === 'city') drawRain(true);
+      if (effect === 'city') {
+        drawRain(true);
+        drawCityLights();
+      }
       if (effect === 'mist') drawMist();
       if (effect === 'sea') drawSea();
+      if (effect === 'snow') drawSnow();
       frame += 1;
       animationFrame = window.requestAnimationFrame(render);
     };

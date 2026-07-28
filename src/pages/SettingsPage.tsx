@@ -72,15 +72,27 @@ export function SettingsPage() {
     }
   };
 
-  const requestNotifications = async () => {
+  const toggleNotifications = async () => {
+    if (preferences.notificationsEnabled) {
+      await updatePreferences({
+        ...preferences,
+        notificationsEnabled: false,
+      });
+      setStatus('专注完成提醒已关闭');
+      return;
+    }
     if (!('Notification' in window)) {
       setStatus('当前浏览器不支持系统通知');
       return;
     }
-    const permission = await Notification.requestPermission();
-    const enabled = permission === 'granted';
-    await updatePreferences({ ...preferences, notificationsEnabled: enabled });
-    setStatus(enabled ? '专注完成提醒已开启' : '没有获得通知权限');
+    try {
+      const permission = await Notification.requestPermission();
+      const enabled = permission === 'granted';
+      await updatePreferences({ ...preferences, notificationsEnabled: enabled });
+      setStatus(enabled ? '专注完成提醒已开启' : '没有获得通知权限');
+    } catch {
+      setStatus('通知权限请求失败，计时功能不受影响');
+    }
   };
 
   const install = async () => {
@@ -121,7 +133,7 @@ export function SettingsPage() {
               <div><h2>专注显示</h2><p>计时器、画质和动态效果</p></div>
             </div>
             <div className="setting-row">
-              <div><strong>默认专注时长</strong><small>进入设置时自动选中</small></div>
+              <div><strong>默认专注时长</strong><small>进入专注室时自动选中</small></div>
               <label className="number-control">
                 <input
                   type="number"
@@ -187,8 +199,8 @@ export function SettingsPage() {
                 <strong>系统通知</strong>
                 <small>{preferences.notificationsEnabled ? '已开启' : '尚未开启'}</small>
               </div>
-              <button type="button" className="secondary-button small-button" onClick={() => void requestNotifications()}>
-                {preferences.notificationsEnabled ? '重新检查' : '请求权限'}
+              <button type="button" className="secondary-button small-button" onClick={() => void toggleNotifications()}>
+                {preferences.notificationsEnabled ? '关闭提醒' : '开启提醒'}
               </button>
             </div>
           </article>
@@ -203,6 +215,7 @@ export function SettingsPage() {
             <SoundMixer
               preferences={preferences}
               onChange={(next) => void updatePreferences(next)}
+              sceneId={preferences.selectedSceneId}
             />
           </article>
 

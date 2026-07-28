@@ -8,11 +8,12 @@ import {
 } from 'lucide-react';
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { ScenePicture } from '../components/ScenePicture';
 import { useApp } from '../context/AppContext';
 import { getScene } from '../data/scenes';
 import {
   calculateStreak,
-  dateKeyFromTimestamp,
+  dailyFocusTotals,
   dayTotal,
   formatMinutes,
   monthCalendar,
@@ -23,16 +24,9 @@ import {
 const weekdays = ['一', '二', '三', '四', '五', '六', '日'];
 
 export function TrackPage() {
-  const { sessions } = useApp();
+  const { sessions, tasks } = useApp();
   const cells = useMemo(() => monthCalendar(), []);
-  const totals = useMemo(() => {
-    const map = new Map<string, number>();
-    sessions.forEach((session) => {
-      const key = dateKeyFromTimestamp(session.endedAt);
-      map.set(key, (map.get(key) ?? 0) + session.focusedSeconds);
-    });
-    return map;
-  }, [sessions]);
+  const totals = useMemo(() => dailyFocusTotals(sessions), [sessions]);
   const currentMonth = new Intl.DateTimeFormat('zh-CN', {
     year: 'numeric',
     month: 'long',
@@ -119,10 +113,17 @@ export function TrackPage() {
               </div>
             )}
             {sessions.slice(0, 12).map((session) => {
-              const date = new Date(session.endedAt);
+              const date = new Date(session.startedAt);
+              const taskTitle =
+                tasks.find((task) => task.id === session.taskId)?.title ??
+                session.taskTitle;
               return (
                 <div className="history-item" key={session.id}>
-                  <img src={getScene(session.sceneId).poster} alt="" />
+                  <ScenePicture
+                    scene={getScene(session.sceneId)}
+                    variant="poster"
+                    alt=""
+                  />
                   <div className="history-copy">
                     <strong>{session.goalText}</strong>
                     <span>
@@ -130,8 +131,11 @@ export function TrackPage() {
                       {' · '}
                       {date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
                       {' · '}
+                      {session.mode === 'countdown' ? '倒计时' : '正计时'}
+                      {' · '}
                       {getScene(session.sceneId).shortName}
                     </span>
+                    {taskTitle && <small>关联任务 · {taskTitle}</small>}
                   </div>
                   <div className="history-time">
                     <strong>{formatMinutes(session.focusedSeconds)}</strong>

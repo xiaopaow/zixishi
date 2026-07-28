@@ -1,6 +1,8 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import type { Quality, Scene } from '../types';
 import { AtmosphereCanvas } from './AtmosphereCanvas';
+import { LivingDetails } from './LivingDetails';
+import { ScenePicture } from './ScenePicture';
 
 interface SceneBackgroundProps {
   scene: Scene;
@@ -19,23 +21,40 @@ export function SceneBackground({
 }: SceneBackgroundProps) {
   const [loaded, setLoaded] = useState(false);
   const [pointer, setPointer] = useState({ x: 0, y: 0 });
+  const [systemReducedMotion, setSystemReducedMotion] = useState(false);
 
   useEffect(() => {
     setLoaded(false);
   }, [scene.id]);
 
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setSystemReducedMotion(media.matches);
+    update();
+    media.addEventListener?.('change', update);
+    return () => media.removeEventListener?.('change', update);
+  }, []);
+
+  const effectsEnabled = motionEnabled && !systemReducedMotion;
+  useEffect(() => {
+    if (!effectsEnabled) setPointer({ x: 0, y: 0 });
+  }, [effectsEnabled]);
+
   const style = {
     '--scene-overlay': dim ? scene.palette.overlay : 'rgba(0,0,0,.08)',
     '--parallax-x': `${pointer.x}px`,
     '--parallax-y': `${pointer.y}px`,
+    '--foreground-x': `${pointer.x * -0.45}px`,
+    '--foreground-y': `${pointer.y * -0.35}px`,
   } as CSSProperties;
 
   return (
     <div
-      className="scene-background"
+      className={`scene-background ${effectsEnabled ? 'motion-enabled' : 'motion-disabled'}`}
+      data-scene={scene.id}
       style={style}
       onPointerMove={(event) => {
-        if (!motionEnabled || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        if (!effectsEnabled) {
           return;
         }
         const rect = event.currentTarget.getBoundingClientRect();
@@ -46,22 +65,31 @@ export function SceneBackground({
       }}
       onPointerLeave={() => setPointer({ x: 0, y: 0 })}
     >
-      <img
+      <ScenePicture
         className="scene-image scene-poster"
-        src={scene.poster}
+        scene={scene}
+        variant="poster"
         alt=""
         aria-hidden="true"
       />
-      <img
+      <ScenePicture
         className={`scene-image scene-full ${loaded ? 'is-loaded' : ''}`}
-        src={quality === 'high' ? scene.image : scene.poster}
+        scene={scene}
+        variant={quality === 'high' ? 'full' : 'poster'}
+        fallbackToPoster
         alt={scene.name}
         onLoad={() => setLoaded(true)}
+        onError={() => setLoaded(true)}
       />
       <div className="scene-parallax-glow" aria-hidden="true" />
+      <div
+        className={`scene-foreground foreground-${scene.effect}`}
+        aria-hidden="true"
+      />
+      {effectsEnabled && <LivingDetails scene={scene} quality={quality} />}
       <AtmosphereCanvas
         effect={scene.effect}
-        enabled={motionEnabled}
+        enabled={effectsEnabled}
         quality={quality}
       />
       <div className="scene-shade" aria-hidden="true" />

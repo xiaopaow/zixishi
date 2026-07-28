@@ -1,5 +1,6 @@
 import { Music2, Volume1, Volume2 } from 'lucide-react';
 import { audioEngine } from '../audio/audioEngine';
+import { saveSceneSound } from '../data/scenes';
 import type {
   AmbienceKey,
   MusicType,
@@ -26,15 +27,19 @@ interface SoundMixerProps {
   preferences: Preferences;
   onChange: (preferences: Preferences) => void;
   dense?: boolean;
+  sceneId?: string;
 }
 
 export function SoundMixer({
   preferences,
   onChange,
   dense = false,
+  sceneId,
 }: SoundMixerProps) {
   const updateSound = (sound: SoundSettings) => {
-    const next = { ...preferences, sound };
+    const next = sceneId
+      ? saveSceneSound(preferences, sceneId, sound)
+      : { ...preferences, sound };
     onChange(next);
     audioEngine.apply(sound);
   };
