@@ -39,6 +39,8 @@ pnpm preview
 - Canvas 氛围粒子与 CSS 视差
 - Vite PWA / Workbox
 
+`scripts/prepare-sites.mjs` 会在常规 Vite 构建后补充一个仅负责静态资源与 SPA 回退的 Sites Worker 入口；它不参与本地业务逻辑。
+
 计时器以真实时间戳而不是 `setInterval` 次数作为时间来源。正在进行的会话只在状态发生变化时持久化，刷新或切换后台后会根据 `runningSince` 自动校时。
 
 ## 隐私与素材
