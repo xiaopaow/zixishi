@@ -5,6 +5,7 @@ import {
   Eye,
   EyeOff,
   Leaf,
+  LogOut,
   LockKeyhole,
   Mail,
   ShieldCheck,
@@ -20,6 +21,12 @@ import {
   membershipPlans,
   PREVIEW_INVITE_CODE,
 } from '../data/membership';
+import {
+  accountNameFromEmail,
+  clearPreviewAccountSession,
+  getPreviewAccountSession,
+  savePreviewAccountSession,
+} from '../data/localAccount';
 
 type AccountMode = 'login' | 'register';
 
@@ -27,7 +34,7 @@ export function AccountPage() {
   const [mode, setMode] = useState<AccountMode>('login');
   const [showPassword, setShowPassword] = useState(false);
   const [status, setStatus] = useState('');
-  const [inviteCode, setInviteCode] = useState('');
+  const [session, setSession] = useState(getPreviewAccountSession);
   const navigate = useNavigate();
   const plusPlan = useMemo(
     () => membershipPlans.find((plan) => plan.id === 'plus')!,
@@ -40,6 +47,7 @@ export function AccountPage() {
     const form = new FormData(event.currentTarget);
     const email = String(form.get('email') ?? '').trim();
     const password = String(form.get('password') ?? '');
+    const submittedName = String(form.get('name') ?? '').trim();
     const submittedInviteCode = String(form.get('inviteCode') ?? '').trim();
 
     if (!email || !password) {
@@ -57,14 +65,18 @@ export function AccountPage() {
       mode === 'register' &&
       submittedInviteCode.toUpperCase() !== PREVIEW_INVITE_CODE
     ) {
-      setStatus('预览邀请码不正确，可点击下方按钮领取本地预览码。');
+      setStatus('邀请码无效，请联系栖时主理人获取内测资格。');
       return;
     }
-    setStatus(
-      mode === 'login'
-        ? '登录界面已就绪；接入账号服务后即可安全登录。'
-        : '注册界面已就绪；当前不会上传或保存你填写的密码。',
-    );
+    const nextSession = {
+      email,
+      name: submittedName || accountNameFromEmail(email),
+      tier: 'free' as const,
+      signedInAt: new Date().toISOString(),
+    };
+    const persistent = mode === 'register' || form.get('remember') === 'on';
+    savePreviewAccountSession(nextSession, persistent);
+    setSession(nextSession);
     navigate('/?welcome=1', { replace: true });
   };
 
@@ -110,6 +122,42 @@ export function AccountPage() {
 
         <div className="account-glass-shell">
           <section className="account-card" aria-labelledby="account-title">
+            {session ? (
+              <div className="account-session">
+                <span className="account-session-avatar" aria-hidden="true">
+                  {session.name.slice(0, 1)}
+                </span>
+                <small>本地预览账号 · 已保持登录</small>
+                <h2 id="account-title">{session.name}，欢迎回来</h2>
+                <p>{session.email}</p>
+                <div className="account-session-badges">
+                  <span><ShieldCheck size={14} /> 本机安全会话</span>
+                  <span><Sparkles size={14} /> 栖时 Free</span>
+                </div>
+                <button
+                  type="button"
+                  className="account-submit"
+                  onClick={() => navigate('/')}
+                >
+                  进入今日自习室 <ArrowRight size={17} />
+                </button>
+                <button
+                  type="button"
+                  className="account-signout"
+                  onClick={() => {
+                    clearPreviewAccountSession();
+                    setSession(null);
+                    setStatus('已退出本地预览账号。');
+                  }}
+                >
+                  <LogOut size={15} /> 退出登录
+                </button>
+                <p className="account-form-note">
+                  仅保存昵称、邮箱和登录状态，不保存密码；清理浏览器数据后会自动退出。
+                </p>
+              </div>
+            ) : (
+              <>
             <div className="account-mode-switch" aria-label="账号操作">
               <button
                 type="button"
@@ -205,27 +253,23 @@ export function AccountPage() {
                       placeholder="输入 6～16 位邀请码"
                       minLength={6}
                       maxLength={16}
-                      value={inviteCode}
-                      onChange={(event) => setInviteCode(event.target.value)}
                       required
                     />
                   </div>
-                  <button
-                    type="button"
-                    className="invite-request"
-                    onClick={() => {
-                      setInviteCode(PREVIEW_INVITE_CODE);
-                      setStatus(`已填入本地预览码 ${PREVIEW_INVITE_CODE}，仅用于演示注册流程。`);
-                    }}
-                  >
-                    暂无邀请码？领取本地预览码 <ArrowRight size={13} />
-                  </button>
+                  <small className="invite-distribution-note">
+                    邀请码由栖时主理人定向发放，暂不开放自助领取。
+                  </small>
                 </label>
               )}
 
               <div className="account-form-meta">
                 <label>
-                  <input type="checkbox" defaultChecked />
+                  <input
+                    type="checkbox"
+                    name={mode === 'login' ? 'remember' : 'terms'}
+                    defaultChecked
+                    required={mode === 'register'}
+                  />
                   <span>{mode === 'login' ? '保持登录' : '同意未来的服务与隐私条款'}</span>
                 </label>
                 {mode === 'login' && <button type="button">忘记密码</button>}
@@ -239,6 +283,8 @@ export function AccountPage() {
                 {status || '演示阶段不会创建远程账号，也不会保存你输入的密码。'}
               </p>
             </form>
+              </>
+            )}
           </section>
 
           <aside className="membership-preview" aria-label="未来会员权益">

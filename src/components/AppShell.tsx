@@ -9,6 +9,7 @@ import {
 import { useEffect } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { getScene } from '../data/scenes';
+import { getPreviewAccountSession } from '../data/localAccount';
 import { useApp } from '../context/AppContext';
 
 const navigation = [
@@ -22,6 +23,7 @@ export function AppShell() {
   const { preferences } = useApp();
   const location = useLocation();
   const scene = getScene(preferences.selectedSceneId);
+  const account = getPreviewAccountSession();
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -64,10 +66,10 @@ export function AppShell() {
           <NavLink
             to="/account"
             className="account-entry"
-            aria-label="登录或注册栖时账号"
+            aria-label={account ? `${account.name}的栖时账号` : '登录或注册栖时账号'}
           >
             <UserRound size={16} />
-            <span>登录</span>
+            <span>{account?.name || '登录'}</span>
           </NavLink>
         </div>
       </header>
