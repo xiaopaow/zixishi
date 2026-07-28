@@ -30,6 +30,7 @@
 ## 图标
 
 - 应用图标 `public/icon.svg` 与 `public/icons/` 为本项目自制品牌图形。
+- Android 自适应图标、通知小图标与明暗启动页由 `scripts/prepare-android-assets.mjs` 基于同一自制品牌图形确定性生成，源文件位于 `assets/`，各密度衍生文件位于 `android/app/src/main/res/`。
 - 界面线性图标来自 `lucide-react`，遵循 Lucide 的 ISC License。依赖版本记录在 `package.json` 与 `pnpm-lock.yaml`。
 
 ## 字体

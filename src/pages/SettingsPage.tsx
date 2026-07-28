@@ -22,6 +22,13 @@ import { Modal } from '../components/Modal';
 import { SoundMixer } from '../components/SoundMixer';
 import { useApp } from '../context/AppContext';
 import { clearData, exportData, importData } from '../db';
+import {
+  cancelFocusCompletionNotification,
+  isNativeApp,
+  requestCompletionNotificationPermission,
+  scheduleFocusCompletionNotification,
+  shareNativeBackup,
+} from '../native/mobile';
 
 interface InstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -31,6 +38,7 @@ interface InstallPromptEvent extends Event {
 export function SettingsPage() {
   const {
     preferences,
+    activeTimer,
     updatePreferences,
     refresh,
     resetState,
@@ -51,13 +59,24 @@ export function SettingsPage() {
 
   const downloadBackup = async () => {
     const payload = await exportData();
-    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+    const contents = JSON.stringify(payload, null, 2);
+    const filename = `栖时备份-${new Date().toISOString().slice(0, 10)}.json`;
+    if (isNativeApp) {
+      const shared = await shareNativeBackup(filename, contents);
+      setStatus(
+        shared
+          ? '已打开系统保存与分享面板'
+          : '备份分享没有完成，请稍后重试',
+      );
+      return;
+    }
+    const blob = new Blob([contents], {
       type: 'application/json',
     });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = `栖时备份-${new Date().toISOString().slice(0, 10)}.json`;
+    anchor.download = filename;
     anchor.click();
     URL.revokeObjectURL(url);
     setStatus('备份已导出');
@@ -85,7 +104,20 @@ export function SettingsPage() {
         ...preferences,
         notificationsEnabled: false,
       });
+      void cancelFocusCompletionNotification();
       setStatus('专注完成提醒已关闭');
+      return;
+    }
+    if (isNativeApp) {
+      const enabled = await requestCompletionNotificationPermission();
+      await updatePreferences({
+        ...preferences,
+        notificationsEnabled: enabled,
+      });
+      if (enabled && activeTimer?.status === 'running') {
+        void scheduleFocusCompletionNotification(activeTimer);
+      }
+      setStatus(enabled ? 'Android 专注完成提醒已开启' : '没有获得通知权限');
       return;
     }
     if (!('Notification' in window)) {
@@ -116,6 +148,7 @@ export function SettingsPage() {
   const doClear = async () => {
     await audioEngine.fadeOut();
     await clearData();
+    void cancelFocusCompletionNotification();
     resetState();
     setClearOpen(false);
     setStatus('本机数据已清空');
@@ -279,9 +312,19 @@ export function SettingsPage() {
                   if (file) void readBackup(file);
                 }}
               />
-              <button type="button" onClick={() => void install()}>
-                <MonitorDown size={17} /><span><strong>安装应用</strong><small>添加到桌面或主屏幕</small></span>
-              </button>
+              {isNativeApp ? (
+                <div className="native-installed-note">
+                  <MonitorDown size={17} />
+                  <span>
+                    <strong>Android 内测版</strong>
+                    <small>当前已作为独立应用运行</small>
+                  </span>
+                </div>
+              ) : (
+                <button type="button" onClick={() => void install()}>
+                  <MonitorDown size={17} /><span><strong>安装应用</strong><small>添加到桌面或主屏幕</small></span>
+                </button>
+              )}
               <button type="button" className="danger" onClick={() => setClearOpen(true)}>
                 <RotateCcw size={17} /><span><strong>清空数据</strong><small>任务、记录与偏好</small></span>
               </button>
@@ -292,7 +335,12 @@ export function SettingsPage() {
             <ShieldCheck size={19} />
             <div>
               <strong>隐私说明</strong>
-              <p>当前版本无需账号，登录、邀请码与会员页面也尚未连接服务器；目标、记录和声音偏好仍只保存在本机。清理浏览器数据会同时移除本机记录，请定期导出备份。</p>
+              <p>
+                当前版本无需账号，登录、邀请码与会员页面也尚未连接服务器；目标、记录和声音偏好仍只保存在本机。
+                {isNativeApp
+                  ? '卸载应用或清除应用数据会移除本机记录，请定期导出备份。'
+                  : '清理浏览器数据会同时移除本机记录，请定期导出备份。'}
+              </p>
             </div>
             <Info size={15} />
           </article>

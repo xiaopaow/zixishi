@@ -17,6 +17,10 @@ import {
   updateActiveTimer,
 } from '../db';
 import { normalizePreferences } from '../data/scenes';
+import {
+  cancelFocusCompletionNotification,
+  scheduleFocusCompletionNotification,
+} from '../native/mobile';
 import type {
   ActiveTimer,
   FocusSession,
@@ -72,34 +76,96 @@ export function AppProvider({ children }: PropsWithChildren) {
     setStorageError(null);
     try {
       const data = await loadAll();
+      let timerForNativeReminder = data.activeTimer;
       setTasks(data.tasks);
       setSessions(data.sessions);
       setPreferencesState(data.preferences);
       if (data.activeTimer?.status === 'running') {
         const now = Date.now();
         const recoveredElapsed = elapsedSeconds(data.activeTimer, now);
-        const rebased = {
-          ...data.activeTimer,
-          accumulatedSeconds: recoveredElapsed,
-          focusIntervals: closeRunningInterval(
+        const targetSeconds = data.activeTimer.targetSeconds;
+        const expiredCountdown =
+          data.activeTimer.mode === 'countdown' &&
+          targetSeconds !== null &&
+          recoveredElapsed >= targetSeconds;
+
+        if (expiredCountdown) {
+          const focusIntervals = closeRunningInterval(
             data.activeTimer,
-            recoveredElapsed,
-          ),
-          runningSince: now,
-          ...monotonicAnchor(),
-        };
-        try {
-          const stored = await updateActiveTimer(
-            data.activeTimer.id,
-            data.activeTimer.revision ?? 0,
-            rebased,
+            targetSeconds,
           );
-          setActiveTimer(stored);
-        } catch {
-          setActiveTimer((await db.active.get('current'))?.value ?? null);
+          const endedAt = Math.max(
+            data.activeTimer.startedAt,
+            ...focusIntervals.map((interval) => interval.endedAt),
+          );
+          const session: FocusSession = {
+            id: data.activeTimer.id,
+            mode: data.activeTimer.mode,
+            targetSeconds,
+            focusedSeconds: targetSeconds,
+            goalText: data.activeTimer.goalText,
+            taskId: data.activeTimer.taskId,
+            taskTitle:
+              data.tasks.find(
+                (task) => task.id === data.activeTimer?.taskId,
+              )?.title ?? null,
+            sceneId: data.activeTimer.sceneId,
+            startedAt: data.activeTimer.startedAt,
+            endedAt,
+            status: 'completed',
+            focusIntervals,
+          };
+          try {
+            await finalizeActiveTimer(
+              data.activeTimer.id,
+              data.activeTimer.revision ?? 0,
+              session,
+            );
+          } catch {
+            // Another tab may already have finalized or revised this timer.
+          }
+          const [current, latestSessions] = await Promise.all([
+            db.active.get('current'),
+            db.sessions.orderBy('endedAt').reverse().toArray(),
+          ]);
+          timerForNativeReminder = current?.value ?? null;
+          setActiveTimer(timerForNativeReminder);
+          setSessions(latestSessions);
+        } else {
+          const rebased = {
+            ...data.activeTimer,
+            accumulatedSeconds: recoveredElapsed,
+            focusIntervals: closeRunningInterval(
+              data.activeTimer,
+              recoveredElapsed,
+            ),
+            runningSince: now,
+            ...monotonicAnchor(),
+          };
+          try {
+            const stored = await updateActiveTimer(
+              data.activeTimer.id,
+              data.activeTimer.revision ?? 0,
+              rebased,
+            );
+            setActiveTimer(stored);
+            timerForNativeReminder = stored;
+          } catch {
+            timerForNativeReminder =
+              (await db.active.get('current'))?.value ?? null;
+            setActiveTimer(timerForNativeReminder);
+          }
         }
       } else {
         setActiveTimer(data.activeTimer);
+      }
+      if (
+        data.preferences.notificationsEnabled &&
+        timerForNativeReminder?.status === 'running'
+      ) {
+        void scheduleFocusCompletionNotification(timerForNativeReminder);
+      } else {
+        void cancelFocusCompletionNotification();
       }
     } catch {
       setStorageError(
@@ -227,8 +293,11 @@ export function AppProvider({ children }: PropsWithChildren) {
     };
     const storedTimer = await createActiveTimer(timer);
     setActiveTimer(storedTimer);
+    if (preferences.notificationsEnabled) {
+      void scheduleFocusCompletionNotification(storedTimer);
+    }
     return storedTimer;
-  }, []);
+  }, [preferences.notificationsEnabled]);
 
   const pauseFocus = useCallback(async () => {
     if (!activeTimer || activeTimer.status !== 'running') return;
@@ -252,6 +321,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       next,
     );
     setActiveTimer(stored);
+    void cancelFocusCompletionNotification();
   }, [activeTimer]);
 
   const resumeFocus = useCallback(async () => {
@@ -268,7 +338,10 @@ export function AppProvider({ children }: PropsWithChildren) {
       next,
     );
     setActiveTimer(stored);
-  }, [activeTimer]);
+    if (preferences.notificationsEnabled) {
+      void scheduleFocusCompletionNotification(stored);
+    }
+  }, [activeTimer, preferences.notificationsEnabled]);
 
   const changeActiveScene = useCallback(
     async (sceneId: string) => {
@@ -324,6 +397,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         activeTimer.revision ?? 0,
         session,
       );
+      void cancelFocusCompletionNotification();
       if (session) {
         setSessions((current) => [
           session!,

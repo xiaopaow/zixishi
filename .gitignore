@@ -8,3 +8,10 @@ coverage
 output
 .vite-dev*
 .DS_Store
+android/local.properties
+android/.gradle/
+android/**/build/
+*.jks
+*.keystore
+key.properties
+keystore.properties

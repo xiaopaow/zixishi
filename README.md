@@ -23,6 +23,7 @@
 - AVIF / WebP 双格式、1280 / 2560 / 原生分辨率响应式场景资源与静态失败回退
 - 键盘焦点、跳过导航、动态页面标题、弹窗焦点圈定和减少动态效果支持
 - 桌面、平板、手机竖屏与手机横屏响应式布局
+- Android 7.0（API 24）及以上的 Capacitor 内测版，支持原生返回键、系统本地通知、安全区与系统栏、启动页和系统分享备份
 
 ## 本地运行
 
@@ -39,6 +40,36 @@ pnpm build
 pnpm preview
 ```
 
+## Android 内测版
+
+Android 工程位于 `android/`，固定包名为 `com.xiaopaow.qishi`。构建要求 Node.js 22.12+、JDK 21 与 Android SDK Platform 36；Build Tools 版本由 Android Gradle Plugin 管理。
+
+```bash
+# 图标或启动页源文件变化时运行
+pnpm android:assets
+
+# 首次发布内测包前只运行一次，随后务必备份签名
+pnpm android:signing
+
+# 构建固定签名、可覆盖升级的内测包
+pnpm android:beta
+
+# 仅供开发者临时调试
+pnpm android:debug
+```
+
+内测安装包默认生成在：
+
+```text
+android/app/build/outputs/apk/release/app-release.apk
+```
+
+`pnpm android:signing` 会生成独立于 Git 仓库的 PKCS#12 密钥和一份被 Git 忽略的本机构建配置。签名文件与配置中的密码必须一起安全备份；丢失任一文件，都无法再发布能覆盖升级的同包名版本。每次分发新版还必须递增 `android/app/build.gradle` 中的 `versionCode`。
+
+原生 App 会直接把全部场景资源打入安装包，不注册 PWA Service Worker；离线首次启动也不需要下载场景。倒计时开始或继续时会安排 Android 本地通知，暂停、结束或清空数据时会取消。系统进入 Doze 或厂商深度省电后提醒可能延迟，因此当前不承诺秒级准点。后台声音会主动暂停，回到应用后需通过页面手势恢复，以避免 WebView 后台音频行为不一致。
+
+应用要求 Android System WebView 109+；旧设备如果无法更新 WebView，可能无法运行。`pnpm android:open` 还需要另行安装 Android Studio。仓库路径可包含中文，但部分旧版 SDK 命令行工具读取中文路径时可能异常；此时可把 APK 复制到纯英文目录再检查。
+
 ## 技术结构
 
 - React + TypeScript + Vite
@@ -47,6 +78,7 @@ pnpm preview
 - Web Audio API 程序化声音引擎
 - Canvas 氛围粒子与 CSS 视差
 - Vite PWA / Workbox
+- Capacitor / Android WebView
 
 `scripts/prepare-sites.mjs` 会在常规 Vite 构建后补充一个仅负责静态资源与 SPA 回退的 Sites Worker 入口；它不参与本地业务逻辑。
 
@@ -56,8 +88,8 @@ pnpm preview
 
 ## 隐私与素材
 
-- 当前不需要账号，也不接入云端 API；预览登录只在浏览器保存昵称、邮箱与会话状态，不保存密码。邀请码由主理人定向发放，正式限次、作废与防泄漏校验需在未来账号服务端完成。
-- 任务、目标、记录和偏好仅保存在当前浏览器。
+- 当前不需要账号，也不接入云端 API；预览登录只在当前浏览器或 App 本机保存昵称、邮箱与会话状态，不保存密码。邀请码由主理人定向发放，正式限次、作废与防泄漏校验需在未来账号服务端完成。
+- 任务、目标、记录和偏好仅保存在当前浏览器或 Android 应用数据中；卸载 App 或清除应用数据会删除这些内容。
 - 八张场景插画为本项目单独生成的原创素材。
 - 音乐和环境声由 Web Audio API 实时合成，不包含抓取或转载的第三方音频。
 - 完整素材来源与许可记录见 [`ASSET_LICENSES.md`](ASSET_LICENSES.md)。

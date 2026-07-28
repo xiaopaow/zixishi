@@ -48,6 +48,15 @@ class QishiAudioEngine {
     await this.start(settings);
   }
 
+  async suspend() {
+    if (!this.context || this.context.state !== 'running') return;
+    try {
+      await this.context.suspend();
+    } catch {
+      // Audio suspension is best-effort during native lifecycle changes.
+    }
+  }
+
   async fadeOut() {
     if (!this.context || !this.master) return;
     this.master.gain.cancelScheduledValues(this.context.currentTime);

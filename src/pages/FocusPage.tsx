@@ -16,6 +16,8 @@ import {
   Volume2,
   X,
 } from 'lucide-react';
+import { App as NativeApp } from '@capacitor/app';
+import { SystemBars } from '@capacitor/core';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { audioEngine } from '../audio/audioEngine';
@@ -25,6 +27,10 @@ import { SceneCard } from '../components/SceneCard';
 import { SoundMixer } from '../components/SoundMixer';
 import { useApp } from '../context/AppContext';
 import { getScene, scenes, soundForScene } from '../data/scenes';
+import {
+  isNativeApp,
+  NATIVE_FOCUS_BACK_EVENT,
+} from '../native/mobile';
 import type { FocusSession } from '../types';
 import { elapsedSeconds, formatClock, formatMinutes } from '../utils';
 
@@ -61,6 +67,7 @@ export function FocusPage() {
   const [completed, setCompleted] = useState<FocusSession | null>(null);
   const [soundReady, setSoundReady] = useState(audioEngine.state === 'running');
   const [operationError, setOperationError] = useState('');
+  const [nativeImmersive, setNativeImmersive] = useState(false);
   const completionStarted = useRef(false);
   const hideTimer = useRef<number | null>(null);
   const wakeLock = useRef<WakeLockSentinel | null>(null);
@@ -112,6 +119,74 @@ export function FocusPage() {
   useEffect(() => {
     audioEngine.apply(preferences.sound);
   }, [preferences.sound]);
+
+  useEffect(() => {
+    if (!isNativeApp) return;
+    let disposed = false;
+    const handles: Array<{ remove: () => Promise<void> }> = [];
+    const retain = (promise: Promise<{ remove: () => Promise<void> }>) => {
+      void promise.then((handle) => {
+        if (disposed) {
+          void handle.remove();
+        } else {
+          handles.push(handle);
+        }
+      });
+    };
+    retain(
+      NativeApp.addListener('pause', () => {
+        void audioEngine.suspend();
+        setSoundReady(false);
+      }),
+    );
+    retain(
+      NativeApp.addListener('resume', () => {
+        setSoundReady(audioEngine.state === 'running');
+        revealControls();
+      }),
+    );
+    return () => {
+      disposed = true;
+      handles.forEach((handle) => void handle.remove());
+    };
+  }, [revealControls]);
+
+  const exitNativeImmersive = useCallback(async () => {
+    if (!isNativeApp) return;
+    try {
+      await SystemBars.show();
+    } catch {
+      // Immersive mode is optional on devices that restrict system-bar control.
+    } finally {
+      setNativeImmersive(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isNativeApp) return;
+    const handleNativeBack = () => {
+      if (nativeImmersive) {
+        void exitNativeImmersive();
+      } else {
+        setEndOpen(true);
+        revealControls();
+      }
+    };
+    window.addEventListener(NATIVE_FOCUS_BACK_EVENT, handleNativeBack);
+    return () =>
+      window.removeEventListener(NATIVE_FOCUS_BACK_EVENT, handleNativeBack);
+  }, [exitNativeImmersive, nativeImmersive, revealControls]);
+
+  useEffect(
+    () => () => {
+      if (isNativeApp) void SystemBars.show();
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (completed && nativeImmersive) void exitNativeImmersive();
+  }, [completed, exitNativeImmersive, nativeImmersive]);
 
   useEffect(() => {
     let disposed = false;
@@ -171,6 +246,7 @@ export function FocusPage() {
 
   const showNotification = useCallback(() => {
     if (
+      !isNativeApp &&
       preferences.notificationsEnabled &&
       'Notification' in window &&
       Notification.permission === 'granted'
@@ -282,6 +358,19 @@ export function FocusPage() {
   };
 
   const toggleFullscreen = async () => {
+    if (isNativeApp) {
+      try {
+        if (nativeImmersive) {
+          await exitNativeImmersive();
+        } else {
+          await SystemBars.hide();
+          setNativeImmersive(true);
+        }
+      } catch {
+        setNativeImmersive(false);
+      }
+      return;
+    }
     try {
       if (!document.fullscreenElement) {
         await document.documentElement.requestFullscreen?.();
@@ -329,8 +418,13 @@ export function FocusPage() {
             <span className="breathing-dot" />
             {scene.name}
           </div>
-          <button type="button" className="icon-button glass-icon" onClick={() => void toggleFullscreen()} aria-label="全屏">
-            <Expand size={18} />
+          <button
+            type="button"
+            className="icon-button glass-icon"
+            onClick={() => void toggleFullscreen()}
+            aria-label={nativeImmersive ? '退出全屏' : '全屏'}
+          >
+            {nativeImmersive ? <Minimize2 size={18} /> : <Expand size={18} />}
           </button>
         </header>
 

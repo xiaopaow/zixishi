@@ -1,13 +1,22 @@
 import { lazy, Suspense, useEffect, useRef } from 'react';
+import { App as NativeApp } from '@capacitor/app';
+import type { PluginListenerHandle } from '@capacitor/core';
+import { LocalNotifications } from '@capacitor/local-notifications';
 import {
   BrowserRouter,
+  HashRouter,
   Navigate,
   Route,
   Routes,
   useLocation,
+  useNavigate,
 } from 'react-router-dom';
 import { AppShell } from './components/AppShell';
 import { useApp } from './context/AppContext';
+import {
+  isNativeApp,
+  NATIVE_FOCUS_BACK_EVENT,
+} from './native/mobile';
 import { HomePage } from './pages/HomePage';
 
 const AccountPage = lazy(() =>
@@ -48,7 +57,74 @@ function RouteLoading() {
 function AppRoutes() {
   const { ready, storageError, refresh } = useApp();
   const location = useLocation();
+  const navigate = useNavigate();
   const initialRoute = useRef(true);
+  const locationPath = useRef(location.pathname);
+  const navigateRef = useRef(navigate);
+  locationPath.current = location.pathname;
+  navigateRef.current = navigate;
+
+  useEffect(() => {
+    if (!isNativeApp) return;
+    let disposed = false;
+    const handles: PluginListenerHandle[] = [];
+    const retain = (promise: Promise<PluginListenerHandle>) => {
+      void promise.then((handle) => {
+        if (disposed) {
+          void handle.remove();
+        } else {
+          handles.push(handle);
+        }
+      });
+    };
+
+    retain(
+      NativeApp.addListener('backButton', ({ canGoBack }) => {
+        if (document.querySelector('[role="dialog"]')) {
+          window.dispatchEvent(
+            new KeyboardEvent('keydown', {
+              key: 'Escape',
+              bubbles: true,
+            }),
+          );
+          return;
+        }
+        if (document.fullscreenElement) {
+          void document.exitFullscreen?.();
+          return;
+        }
+        if (locationPath.current === '/focus') {
+          window.dispatchEvent(new Event(NATIVE_FOCUS_BACK_EVENT));
+          return;
+        }
+        if (locationPath.current === '/') {
+          void NativeApp.minimizeApp();
+          return;
+        }
+        if (canGoBack) {
+          navigateRef.current(-1);
+        } else {
+          navigateRef.current('/', { replace: true });
+        }
+      }),
+    );
+
+    retain(
+      LocalNotifications.addListener(
+        'localNotificationActionPerformed',
+        ({ notification }) => {
+          if (notification.extra?.route === '/focus') {
+            navigateRef.current('/focus');
+          }
+        },
+      ),
+    );
+
+    return () => {
+      disposed = true;
+      handles.forEach((handle) => void handle.remove());
+    };
+  }, []);
 
   useEffect(() => {
     const titles: Record<string, string> = {
@@ -134,7 +210,18 @@ function AppRoutes() {
 
   return (
     <>
-      <a className="skip-link" href="#main-content">跳到主要内容</a>
+      <a
+        className="skip-link"
+        href="#main-content"
+        onClick={(event) => {
+          event.preventDefault();
+          document.getElementById('main-content')?.focus({
+            preventScroll: false,
+          });
+        }}
+      >
+        跳到主要内容
+      </a>
       <Suspense fallback={<RouteLoading />}>
         <Routes>
           <Route element={<AppShell />}>
@@ -153,7 +240,11 @@ function AppRoutes() {
 }
 
 export default function App() {
-  return (
+  return isNativeApp ? (
+    <HashRouter>
+      <AppRoutes />
+    </HashRouter>
+  ) : (
     <BrowserRouter>
       <AppRoutes />
     </BrowserRouter>
