@@ -8,6 +8,7 @@ class QishiAudioEngine {
   private musicGain: GainNode | null = null;
   private ambienceMaster: GainNode | null = null;
   private channels: GainMap | null = null;
+  private waveModulationGain: GainNode | null = null;
   private musicTimer: number | null = null;
   private birdTimer: number | null = null;
   private abacusTimer: number | null = null;
@@ -98,12 +99,19 @@ class QishiAudioEngine {
     this.ambienceMaster.connect(this.master);
     this.master.connect(this.context.destination);
 
+    this.waveModulationGain = this.context.createGain();
+    this.waveModulationGain.gain.value = 0.72;
     this.channels = {
       rain: this.createNoiseChannel('highpass', 1800, 0.62),
       wind: this.createNoiseChannel('bandpass', 420, 0.5),
       fire: this.createNoiseChannel('bandpass', 1250, 0.34),
       birds: this.context.createGain(),
-      waves: this.createNoiseChannel('lowpass', 650, 0.7),
+      waves: this.createNoiseChannel(
+        'lowpass',
+        650,
+        0.7,
+        this.waveModulationGain,
+      ),
       city: this.context.createGain(),
       abacus: this.context.createGain(),
     };
@@ -121,6 +129,7 @@ class QishiAudioEngine {
     filterType: BiquadFilterType,
     frequency: number,
     playbackRate: number,
+    modulationGain?: GainNode,
   ) {
     const context = this.context!;
     const frames = context.sampleRate * 3;
@@ -142,7 +151,13 @@ class QishiAudioEngine {
     filter.frequency.value = frequency;
     filter.Q.value = filterType === 'bandpass' ? 0.75 : 0.25;
     gain.gain.value = 0;
-    source.connect(filter).connect(gain).connect(this.ambienceMaster!);
+    source.connect(filter);
+    if (modulationGain) {
+      filter.connect(modulationGain).connect(gain);
+      gain.connect(this.ambienceMaster!);
+    } else {
+      filter.connect(gain).connect(this.ambienceMaster!);
+    }
     source.start();
     return gain;
   }
@@ -165,12 +180,13 @@ class QishiAudioEngine {
   }
 
   private buildWavePulse() {
+    if (!this.waveModulationGain) return;
     const lfo = this.context!.createOscillator();
     const depth = this.context!.createGain();
     lfo.type = 'sine';
     lfo.frequency.value = 0.11;
     depth.gain.value = 0.22;
-    lfo.connect(depth).connect(this.channels!.waves.gain);
+    lfo.connect(depth).connect(this.waveModulationGain.gain);
     lfo.start();
   }
 

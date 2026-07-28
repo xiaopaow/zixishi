@@ -82,6 +82,29 @@ describe('timer utilities', () => {
       }),
     ).toBe(120);
   });
+
+  it('uses the monotonic epoch after a reload when the wall clock jumps', () => {
+    const timer: ActiveTimer = {
+      id: 'reload-clock-safe',
+      mode: 'countdown',
+      targetSeconds: 1500,
+      goalText: '读书',
+      taskId: null,
+      sceneId: 'rain-study',
+      startedAt: 1_000,
+      runningSince: 10_000,
+      accumulatedSeconds: 90,
+      status: 'running',
+      monotonicOrigin: 1_000,
+      monotonicSince: 20_000,
+    };
+    expect(
+      elapsedSeconds(timer, 3_610_000, {
+        origin: 25_000,
+        now: 26_000,
+      }),
+    ).toBe(120);
+  });
 });
 
 describe('focus statistics', () => {
@@ -117,6 +140,28 @@ describe('focus statistics', () => {
     expect(allocations.get('2026-07-29')).toBe(600);
     expect(dayTotal([crossMidnight], '2026-07-28')).toBe(600);
     expect(dayTotal([crossMidnight], '2026-07-29')).toBe(600);
+  });
+
+  it('does not distribute a paused cross-midnight gap as focus time', () => {
+    const startedAt = new Date(2026, 6, 28, 23, 40).getTime();
+    const endedAt = new Date(2026, 6, 29, 0, 25).getTime();
+    const pausedAcrossMidnight: FocusSession = {
+      ...session(endedAt, 20 * 60),
+      startedAt,
+      focusIntervals: [
+        {
+          startedAt,
+          endedAt: new Date(2026, 6, 28, 23, 45).getTime(),
+        },
+        {
+          startedAt: new Date(2026, 6, 29, 0, 10).getTime(),
+          endedAt,
+        },
+      ],
+    };
+
+    expect(dayTotal([pausedAcrossMidnight], '2026-07-28')).toBe(300);
+    expect(dayTotal([pausedAcrossMidnight], '2026-07-29')).toBe(900);
   });
 
   it('builds complete Monday-first calendar rows', () => {

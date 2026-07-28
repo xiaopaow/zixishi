@@ -33,16 +33,28 @@ export const elapsedSeconds = (
 ) => {
   let live = 0;
   if (timer.status === 'running' && timer.runningSince !== null) {
-    const sameDocumentClock =
+    const wallClockLive = Math.max(0, (now - timer.runningSince) / 1000);
+    const hasMonotonicAnchor =
       monotonic &&
       timer.monotonicOrigin !== null &&
       timer.monotonicOrigin !== undefined &&
       timer.monotonicSince !== null &&
-      timer.monotonicSince !== undefined &&
-      Math.abs(monotonic.origin - timer.monotonicOrigin) < 1;
-    live = sameDocumentClock
-      ? Math.max(0, (monotonic.now - timer.monotonicSince!) / 1000)
-      : Math.max(0, (now - timer.runningSince) / 1000);
+      timer.monotonicSince !== undefined;
+    const monotonicLive = hasMonotonicAnchor
+      ? (
+        monotonic.origin +
+        monotonic.now -
+        timer.monotonicOrigin! -
+        timer.monotonicSince!
+      ) / 1000
+      : Number.NaN;
+    // performance.timeOrigin + performance.now() remains monotonic across a
+    // same-browser reload, so a manual wall-clock jump cannot complete a
+    // timer instantly. Legacy/browser-restart records fall back to wall time.
+    live =
+      Number.isFinite(monotonicLive) && monotonicLive >= 0
+        ? monotonicLive
+        : wallClockLive;
   }
   return Math.max(0, timer.accumulatedSeconds + live);
 };
@@ -87,27 +99,39 @@ export const sessionDayAllocations = (session: FocusSession) => {
   const focusedSeconds = Math.max(0, session.focusedSeconds);
   if (focusedSeconds === 0) return new Map<string, number>();
 
-  const end = Math.max(session.startedAt, session.endedAt);
-  const start = Math.min(session.startedAt, session.endedAt);
-  if (end <= start) {
-    return new Map([[dateKeyFromTimestamp(session.endedAt), focusedSeconds]]);
-  }
-
   const overlaps: Array<{ key: string; milliseconds: number }> = [];
-  let cursor = start;
-  while (cursor < end) {
-    const current = new Date(cursor);
-    const nextMidnight = new Date(
-      current.getFullYear(),
-      current.getMonth(),
-      current.getDate() + 1,
-    ).getTime();
-    const boundary = Math.min(end, nextMidnight);
-    overlaps.push({
-      key: dateKeyFromTimestamp(cursor),
-      milliseconds: Math.max(0, boundary - cursor),
-    });
-    cursor = boundary;
+  const appendOverlaps = (rawStart: number, rawEnd: number) => {
+    const end = Math.max(rawStart, rawEnd);
+    const start = Math.min(rawStart, rawEnd);
+    let cursor = start;
+    while (cursor < end) {
+      const current = new Date(cursor);
+      const nextMidnight = new Date(
+        current.getFullYear(),
+        current.getMonth(),
+        current.getDate() + 1,
+      ).getTime();
+      const boundary = Math.min(end, nextMidnight);
+      overlaps.push({
+        key: dateKeyFromTimestamp(cursor),
+        milliseconds: Math.max(0, boundary - cursor),
+      });
+      cursor = boundary;
+    }
+  };
+
+  const intervals = session.focusIntervals?.filter(
+    ({ startedAt, endedAt }) =>
+      Number.isFinite(startedAt) &&
+      Number.isFinite(endedAt) &&
+      endedAt > startedAt,
+  );
+  if (intervals?.length) {
+    intervals.forEach(({ startedAt, endedAt }) =>
+      appendOverlaps(startedAt, endedAt),
+    );
+  } else {
+    appendOverlaps(session.startedAt, session.endedAt);
   }
 
   const wallMilliseconds = overlaps.reduce(

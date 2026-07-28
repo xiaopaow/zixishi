@@ -32,6 +32,11 @@ export interface Task {
   completedAt: number | null;
 }
 
+export interface FocusInterval {
+  startedAt: number;
+  endedAt: number;
+}
+
 export interface FocusSession {
   id: string;
   mode: TimerMode;
@@ -44,6 +49,12 @@ export interface FocusSession {
   startedAt: number;
   endedAt: number;
   status: SessionStatus;
+  /**
+   * Exact running-only wall-clock intervals. New sessions use these to split
+   * focus time across local days without counting a paused interval.
+   * Older imported sessions legitimately omit this field.
+   */
+  focusIntervals?: FocusInterval[];
 }
 
 export interface ActiveTimer {
@@ -57,6 +68,11 @@ export interface ActiveTimer {
   runningSince: number | null;
   accumulatedSeconds: number;
   status: TimerStatus;
+  /**
+   * Completed running intervals. The currently running interval begins at
+   * runningSince and is appended when the timer pauses or finishes.
+   */
+  focusIntervals?: FocusInterval[];
   /**
    * Same-document monotonic clock anchor. It prevents a manual system-clock
    * adjustment from jumping an active timer while the page remains open.
@@ -117,9 +133,10 @@ export interface StartFocusInput {
 }
 
 export interface BackupPayload {
-  version: 1 | 2;
+  version: 1 | 2 | 3;
   exportedAt: number;
   tasks: Task[];
   sessions: FocusSession[];
   preferences: Preferences;
+  activeTimer?: ActiveTimer | null;
 }

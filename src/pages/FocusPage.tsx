@@ -28,9 +28,14 @@ import { getScene, scenes, soundForScene } from '../data/scenes';
 import type { FocusSession } from '../types';
 import { elapsedSeconds, formatClock, formatMinutes } from '../utils';
 
+interface WakeLockSentinel {
+  release: () => Promise<void>;
+  addEventListener?: (type: 'release', listener: () => void) => void;
+}
+
 interface WakeLockNavigator {
   wakeLock?: {
-    request: (type: 'screen') => Promise<{ release: () => Promise<void> }>;
+    request: (type: 'screen') => Promise<WakeLockSentinel>;
   };
 }
 
@@ -57,7 +62,8 @@ export function FocusPage() {
   const [soundReady, setSoundReady] = useState(audioEngine.state === 'running');
   const completionStarted = useRef(false);
   const hideTimer = useRef<number | null>(null);
-  const wakeLock = useRef<{ release: () => Promise<void> } | null>(null);
+  const wakeLock = useRef<WakeLockSentinel | null>(null);
+  const wakeRetry = useRef<number | null>(null);
 
   const scene = getScene(activeTimer?.sceneId ?? preferences.selectedSceneId);
   const elapsed = activeTimer ? elapsedSeconds(activeTimer, now) : 0;
@@ -125,6 +131,17 @@ export function FocusPage() {
           return;
         }
         wakeLock.current = sentinel ?? null;
+        sentinel?.addEventListener?.('release', () => {
+          if (wakeLock.current !== sentinel) return;
+          wakeLock.current = null;
+          if (
+            !disposed &&
+            document.visibilityState === 'visible' &&
+            activeTimer?.status === 'running'
+          ) {
+            wakeRetry.current = window.setTimeout(() => void acquire(), 1000);
+          }
+        });
       } catch {
         wakeLock.current = null;
       }
@@ -145,6 +162,7 @@ export function FocusPage() {
     return () => {
       disposed = true;
       document.removeEventListener('visibilitychange', handleVisibility);
+      if (wakeRetry.current) window.clearTimeout(wakeRetry.current);
       void wakeLock.current?.release();
       wakeLock.current = null;
     };

@@ -1,7 +1,15 @@
 import 'fake-indexeddb/auto';
 import Dexie from 'dexie';
 import { afterEach, describe, expect, it } from 'vitest';
-import { clearData, db, exportData, importData, loadAll, savePreferences } from './db';
+import {
+  clearData,
+  db,
+  exportData,
+  importData,
+  loadAll,
+  saveActiveTimer,
+  savePreferences,
+} from './db';
 import { defaultPreferences, scenes } from './data/scenes';
 
 afterEach(async () => {
@@ -20,7 +28,7 @@ describe('local backup', () => {
     });
     await savePreferences({ ...defaultPreferences, defaultMinutes: 50 });
     const backup = await exportData();
-    expect(backup.version).toBe(2);
+    expect(backup.version).toBe(3);
 
     await clearData();
     await importData(backup);
@@ -29,6 +37,31 @@ describe('local backup', () => {
     expect(restored.tasks).toHaveLength(1);
     expect(restored.tasks[0].title).toBe('整理第三章');
     expect(restored.preferences.defaultMinutes).toBe(50);
+  });
+
+  it('backs up and restores an in-progress timer', async () => {
+    await saveActiveTimer({
+      id: 'active-1',
+      mode: 'countdown',
+      targetSeconds: 1500,
+      goalText: '完成今日阅读',
+      taskId: null,
+      sceneId: 'rain-study',
+      startedAt: 1_000,
+      runningSince: null,
+      accumulatedSeconds: 420,
+      status: 'paused',
+      focusIntervals: [{ startedAt: 1_000, endedAt: 421_000 }],
+    });
+
+    const backup = await exportData();
+    await clearData();
+    await importData(backup);
+
+    const restored = await loadAll();
+    expect(restored.activeTimer?.id).toBe('active-1');
+    expect(restored.activeTimer?.accumulatedSeconds).toBe(420);
+    expect(restored.activeTimer?.focusIntervals).toHaveLength(1);
   });
 
   it('rejects unknown backup formats', async () => {
@@ -43,6 +76,32 @@ describe('local backup', () => {
         tasks: [{ id: 'broken' }],
         sessions: [],
         preferences: defaultPreferences,
+      }),
+    ).rejects.toThrow('备份文件格式不正确');
+  });
+
+  it('rejects negative focus durations in imported records', async () => {
+    await expect(
+      importData({
+        version: 3,
+        exportedAt: Date.now(),
+        tasks: [],
+        sessions: [
+          {
+            id: 'negative',
+            mode: 'countdown',
+            targetSeconds: 1500,
+            focusedSeconds: -30,
+            goalText: '无效记录',
+            taskId: null,
+            sceneId: 'rain-study',
+            startedAt: 1_000,
+            endedAt: 2_000,
+            status: 'abandoned',
+          },
+        ],
+        preferences: defaultPreferences,
+        activeTimer: null,
       }),
     ).rejects.toThrow('备份文件格式不正确');
   });

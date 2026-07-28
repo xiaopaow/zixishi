@@ -45,6 +45,27 @@ interface AppContextValue {
 
 const AppContext = createContext<AppContextValue | null>(null);
 
+const closeRunningInterval = (
+  timer: ActiveTimer,
+  totalElapsedSeconds: number,
+) => {
+  if (!timer.focusIntervals || timer.runningSince === null) {
+    return timer.focusIntervals;
+  }
+  const liveSeconds = Math.max(
+    0,
+    totalElapsedSeconds - timer.accumulatedSeconds,
+  );
+  if (liveSeconds <= 0) return timer.focusIntervals;
+  return [
+    ...timer.focusIntervals,
+    {
+      startedAt: timer.runningSince,
+      endedAt: timer.runningSince + liveSeconds * 1000,
+    },
+  ];
+};
+
 export function AppProvider({ children }: PropsWithChildren) {
   const [ready, setReady] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -58,14 +79,17 @@ export function AppProvider({ children }: PropsWithChildren) {
     setTasks(data.tasks);
     setSessions(data.sessions);
     setPreferencesState(data.preferences);
-    if (
-      data.activeTimer?.status === 'running' &&
-      data.activeTimer.runningSince !== null &&
-      data.activeTimer.runningSince > Date.now() + 5 * 1000
-    ) {
+    if (data.activeTimer?.status === 'running') {
+      const now = Date.now();
+      const recoveredElapsed = elapsedSeconds(data.activeTimer, now);
       const rebased = {
         ...data.activeTimer,
-        runningSince: Date.now(),
+        accumulatedSeconds: recoveredElapsed,
+        focusIntervals: closeRunningInterval(
+          data.activeTimer,
+          recoveredElapsed,
+        ),
+        runningSince: now,
         ...monotonicAnchor(),
       };
       await saveActiveTimer(rebased);
@@ -175,6 +199,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       runningSince: now,
       accumulatedSeconds: 0,
       status: 'running',
+      focusIntervals: [],
       ...monotonicAnchor(),
     };
     await saveActiveTimer(timer);
@@ -185,9 +210,14 @@ export function AppProvider({ children }: PropsWithChildren) {
   const pauseFocus = useCallback(async () => {
     if (!activeTimer || activeTimer.status !== 'running') return;
     const now = Date.now();
+    const accumulatedSeconds = elapsedSeconds(activeTimer, now);
     const next: ActiveTimer = {
       ...activeTimer,
-      accumulatedSeconds: elapsedSeconds(activeTimer, now),
+      accumulatedSeconds,
+      focusIntervals: closeRunningInterval(
+        activeTimer,
+        accumulatedSeconds,
+      ),
       runningSince: null,
       status: 'paused',
       monotonicOrigin: null,
@@ -224,6 +254,10 @@ export function AppProvider({ children }: PropsWithChildren) {
       if (!activeTimer) return null;
       const endedAt = Date.now();
       const rawElapsed = elapsedSeconds(activeTimer, endedAt);
+      const focusIntervals =
+        activeTimer.status === 'running'
+          ? closeRunningInterval(activeTimer, rawElapsed)
+          : activeTimer.focusIntervals;
       const focusedSeconds =
         activeTimer.mode === 'countdown' && status === 'completed'
           ? activeTimer.targetSeconds ?? rawElapsed
@@ -243,6 +277,7 @@ export function AppProvider({ children }: PropsWithChildren) {
           startedAt: activeTimer.startedAt,
           endedAt,
           status,
+          focusIntervals,
         };
         await db.sessions.put(session);
         setSessions((current) => [session!, ...current]);
