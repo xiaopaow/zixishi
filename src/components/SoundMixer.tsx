@@ -15,6 +15,7 @@ const ambienceLabels: Array<{ key: AmbienceKey; label: string }> = [
   { key: 'birds', label: '鸟鸣' },
   { key: 'waves', label: '海浪' },
   { key: 'city', label: '城市' },
+  { key: 'abacus', label: '算珠' },
 ];
 
 const musicLabels: Array<{ key: MusicType; label: string }> = [

@@ -19,13 +19,10 @@ export function SceneBackground({
   dim = true,
   children,
 }: SceneBackgroundProps) {
-  const [loaded, setLoaded] = useState(false);
+  const [loadedSceneId, setLoadedSceneId] = useState<string | null>(null);
   const [pointer, setPointer] = useState({ x: 0, y: 0 });
   const [systemReducedMotion, setSystemReducedMotion] = useState(false);
-
-  useEffect(() => {
-    setLoaded(false);
-  }, [scene.id]);
+  const loaded = loadedSceneId === scene.id;
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -78,8 +75,8 @@ export function SceneBackground({
         variant={quality === 'high' ? 'full' : 'poster'}
         fallbackToPoster
         alt={scene.name}
-        onLoad={() => setLoaded(true)}
-        onError={() => setLoaded(true)}
+        onLoad={() => setLoadedSceneId(scene.id)}
+        onError={() => setLoadedSceneId(scene.id)}
       />
       <div className="scene-parallax-glow" aria-hidden="true" />
       <div

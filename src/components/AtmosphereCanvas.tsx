@@ -48,17 +48,25 @@ export function AtmosphereCanvas({
         x: Math.random() * width * (effect === 'snow' ? 0.82 : 1),
         y: Math.random() * height * (effect === 'snow' ? 0.82 : 1),
         speed:
-          effect === 'rain' || effect === 'city'
+          effect === 'rain' || effect === 'city' || effect === 'train'
             ? 4 + Math.random() * 7
             : effect === 'snow'
               ? 0.3 + Math.random() * 0.75
-            : 0.12 + Math.random() * 0.45,
+              : effect === 'ginkgo'
+                ? 0.28 + Math.random() * 0.7
+                : effect === 'classroom'
+                  ? 0.08 + Math.random() * 0.24
+                : 0.12 + Math.random() * 0.45,
         size:
-          effect === 'rain' || effect === 'city'
+          effect === 'rain' || effect === 'city' || effect === 'train'
             ? 8 + Math.random() * 18
             : effect === 'snow'
               ? 0.8 + Math.random() * 2.3
-            : 12 + Math.random() * 54,
+              : effect === 'ginkgo'
+                ? 3.2 + Math.random() * 6
+                : effect === 'classroom'
+                  ? 0.7 + Math.random() * 1.8
+                : 12 + Math.random() * 54,
         alpha: 0.05 + Math.random() * 0.2,
         drift: -0.25 + Math.random() * 0.5,
         phase: Math.random() * Math.PI * 2,
@@ -173,6 +181,72 @@ export function AtmosphereCanvas({
       });
     };
 
+    const drawGinkgo = () => {
+      particles.slice(0, Math.floor(count * 0.72)).forEach((particle, index) => {
+        const angle = frame * 0.012 + particle.phase + index * 0.17;
+        context.save();
+        context.translate(particle.x, particle.y);
+        context.rotate(angle);
+        context.fillStyle = `rgba(220,164,64,${particle.alpha + 0.13})`;
+        context.beginPath();
+        context.ellipse(
+          0,
+          0,
+          particle.size,
+          particle.size * 0.48,
+          0,
+          0,
+          Math.PI * 2,
+        );
+        context.fill();
+        context.restore();
+        particle.x += particle.drift * 0.8 + Math.sin(angle) * 0.22;
+        particle.y += particle.speed;
+        if (particle.y > height + 12 || particle.x < -14 || particle.x > width + 14) {
+          particle.x = width * (0.28 + Math.random() * 0.7);
+          particle.y = -12;
+        }
+      });
+    };
+
+    const drawTrainWindow = () => {
+      context.save();
+      context.beginPath();
+      context.rect(0, 0, width * 0.74, height * 0.82);
+      context.clip();
+      drawRain(true);
+      const travel = (frame * 2.1) % (width * 1.55);
+      const reflectionX = width * 1.15 - travel;
+      const glow = context.createLinearGradient(
+        reflectionX - 80,
+        0,
+        reflectionX + 80,
+        0,
+      );
+      glow.addColorStop(0, 'rgba(225,184,112,0)');
+      glow.addColorStop(0.5, 'rgba(225,184,112,0.07)');
+      glow.addColorStop(1, 'rgba(225,184,112,0)');
+      context.fillStyle = glow;
+      context.fillRect(reflectionX - 80, 0, 160, height * 0.82);
+      context.restore();
+    };
+
+    const drawClassroomDust = () => {
+      particles.slice(0, Math.floor(count * 0.68)).forEach((particle) => {
+        const pulse = 0.45 + Math.sin(frame * 0.018 + particle.phase) * 0.42;
+        context.fillStyle = `rgba(255,225,164,${(particle.alpha + 0.06) * pulse})`;
+        context.beginPath();
+        context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        context.fill();
+        particle.x += particle.drift * 0.22;
+        particle.y -= particle.speed;
+        if (particle.y < -8 || particle.x < -8 || particle.x > width + 8) {
+          particle.x = width * (0.3 + Math.random() * 0.68);
+          particle.y = height + 8;
+        }
+      });
+    };
+
     const render = () => {
       context.clearRect(0, 0, width, height);
       if (effect === 'rain') drawRain();
@@ -183,6 +257,9 @@ export function AtmosphereCanvas({
       if (effect === 'mist') drawMist();
       if (effect === 'sea') drawSea();
       if (effect === 'snow') drawSnow();
+      if (effect === 'ginkgo') drawGinkgo();
+      if (effect === 'train') drawTrainWindow();
+      if (effect === 'classroom') drawClassroomDust();
       frame += 1;
       animationFrame = window.requestAnimationFrame(render);
     };

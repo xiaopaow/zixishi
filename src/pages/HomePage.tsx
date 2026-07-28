@@ -15,11 +15,13 @@ import {
   Target,
   Trash2,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Modal } from '../components/Modal';
 import { ScenePicture } from '../components/ScenePicture';
 import { useApp } from '../context/AppContext';
 import { getScene, scenes, soundForScene } from '../data/scenes';
+import { pickWelcomeQuote } from '../data/quotes';
 import {
   calculateStreak,
   chineseDate,
@@ -43,6 +45,11 @@ export function HomePage() {
     updatePreferences,
   } = useApp();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [welcomeQuote] = useState(() =>
+    searchParams.get('welcome') === '1' ? pickWelcomeQuote() : null,
+  );
+  const [welcomeOpen, setWelcomeOpen] = useState(Boolean(welcomeQuote));
   const [newTask, setNewTask] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
@@ -58,6 +65,12 @@ export function HomePage() {
   const recentSession = sessions[0];
   const completedCount = todayTasks.filter((task) => task.completedAt).length;
 
+  useEffect(() => {
+    if (searchParams.get('welcome') === '1') {
+      navigate('/', { replace: true });
+    }
+  }, [navigate, searchParams]);
+
   const submitTask = async (event: React.FormEvent) => {
     event.preventDefault();
     await addTask(newTask);
@@ -71,6 +84,27 @@ export function HomePage() {
 
   return (
     <div className="page home-page">
+      <Modal
+        open={welcomeOpen}
+        title="欢迎回到栖时"
+        onClose={() => setWelcomeOpen(false)}
+        className="welcome-quote-modal"
+      >
+        <div className="welcome-quote-card">
+          <span className="welcome-quote-seal"><Leaf size={24} /></span>
+          <span className="eyebrow">栖时原创 · 今日寄语</span>
+          <h3>{welcomeQuote?.title}</h3>
+          <p>{welcomeQuote?.body}</p>
+          <button
+            type="button"
+            className="primary-button"
+            onClick={() => setWelcomeOpen(false)}
+          >
+            收下这份鼓励 <ArrowRight size={16} />
+          </button>
+        </div>
+      </Modal>
+
       {activeTimer && (
         <Link to="/focus" className="resume-banner">
           <span className="resume-icon"><Play size={17} fill="currentColor" /></span>
@@ -247,7 +281,7 @@ export function HomePage() {
         <article className="glass-card mini-scene-list">
           <div className="section-heading">
             <div>
-              <span className="eyebrow">五境流光</span>
+              <span className="eyebrow">八境流光</span>
               <h2>换一种心境</h2>
             </div>
             <Link to="/room">全部场景 <ChevronRight size={15} /></Link>

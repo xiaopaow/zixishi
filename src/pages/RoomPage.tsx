@@ -2,10 +2,13 @@ import {
   ArrowRight,
   Check,
   Clock3,
+  Monitor,
   Play,
   RotateCcw,
   Sparkles,
   Timer,
+  Smartphone,
+  UsersRound,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -113,7 +116,10 @@ export function RoomPage() {
               <span>场景 · {String(scenes.length).padStart(2, '0')}</span>
               <strong>东方疗愈空间</strong>
             </div>
-            <small>原创插画 + 实时微动效</small>
+            <div className="device-hints">
+              <span><Monitor size={13} /> 电脑 / 平板沉浸最佳</span>
+              <small><Smartphone size={12} /> 手机完整可用</small>
+            </div>
           </div>
           <div className="scene-grid">
             {scenes.map((scene) => (
@@ -125,6 +131,15 @@ export function RoomPage() {
               />
             ))}
           </div>
+          <article className="glass-card companion-roadmap">
+            <span className="companion-roadmap-icon"><UsersRound size={19} /></span>
+            <div>
+              <span className="eyebrow">同频陪伴 · 准备中</span>
+              <strong>看见同场景有多少人在认真，但不做喧闹的社交广场</strong>
+              <p>未来将加入真实在线人数、好友静默陪伴与共同结束提醒；在服务接入前不展示虚构人数。</p>
+            </div>
+            <span className="coming-pill">COMING SOON</span>
+          </article>
         </div>
 
         <aside className="glass-card setup-panel">

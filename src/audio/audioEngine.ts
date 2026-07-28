@@ -10,6 +10,7 @@ class QishiAudioEngine {
   private channels: GainMap | null = null;
   private musicTimer: number | null = null;
   private birdTimer: number | null = null;
+  private abacusTimer: number | null = null;
   private musicType: MusicType = 'none';
   private built = false;
 
@@ -104,12 +105,15 @@ class QishiAudioEngine {
       birds: this.context.createGain(),
       waves: this.createNoiseChannel('lowpass', 650, 0.7),
       city: this.context.createGain(),
+      abacus: this.context.createGain(),
     };
     this.channels.birds.connect(this.ambienceMaster);
     this.channels.city.connect(this.ambienceMaster);
+    this.channels.abacus.connect(this.ambienceMaster);
     this.buildCityHum();
     this.buildWavePulse();
     this.scheduleBirds();
+    this.scheduleAbacus();
     this.built = true;
   }
 
@@ -191,6 +195,35 @@ class QishiAudioEngine {
     };
     chirp();
     this.birdTimer = window.setInterval(chirp, 6500 + Math.random() * 2500);
+  }
+
+  private scheduleAbacus() {
+    const clickPhrase = () => {
+      if (!this.context || !this.channels) return;
+      const count = 2 + Math.floor(Math.random() * 4);
+      for (let index = 0; index < count; index += 1) {
+        const oscillator = this.context.createOscillator();
+        const gain = this.context.createGain();
+        const filter = this.context.createBiquadFilter();
+        const start = this.context.currentTime + index * (0.075 + Math.random() * 0.045);
+        oscillator.type = 'triangle';
+        oscillator.frequency.setValueAtTime(760 + Math.random() * 260, start);
+        oscillator.frequency.exponentialRampToValueAtTime(310, start + 0.07);
+        filter.type = 'bandpass';
+        filter.frequency.value = 980;
+        filter.Q.value = 0.7;
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(0.12, start + 0.008);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.12);
+        oscillator.connect(filter).connect(gain).connect(this.channels.abacus);
+        oscillator.start(start);
+        oscillator.stop(start + 0.14);
+      }
+    };
+    this.abacusTimer = window.setInterval(
+      clickPhrase,
+      5200 + Math.random() * 2800,
+    );
   }
 
   private restartMusic() {

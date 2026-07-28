@@ -1,6 +1,8 @@
 import {
+  ArrowRight,
   Bell,
   Check,
+  Crown,
   Database,
   Download,
   Eye,
@@ -11,8 +13,10 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Upload,
+  UserRound,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { audioEngine } from '../audio/audioEngine';
 import { Modal } from '../components/Modal';
 import { SoundMixer } from '../components/SoundMixer';
@@ -127,6 +131,28 @@ export function SettingsPage() {
 
       <section className="settings-layout">
         <div className="settings-column">
+          <article className="glass-card settings-card membership-settings-card">
+            <div className="settings-card-title">
+              <span><Crown size={18} /></span>
+              <div>
+                <h2>栖时账号与会员</h2>
+                <p>账号体系预览 · Plus 权益即将开放</p>
+              </div>
+            </div>
+            <div className="membership-settings-copy">
+              <div>
+                <UserRound size={18} />
+                <span>
+                  <strong>当前使用本机模式</strong>
+                  <small>任务与轨迹不会自动上传，未来可自愿开启同步。</small>
+                </span>
+              </div>
+              <Link to="/account">
+                查看登录注册界面 <ArrowRight size={16} />
+              </Link>
+            </div>
+          </article>
+
           <article className="glass-card settings-card">
             <div className="settings-card-title">
               <span><Eye size={18} /></span>
@@ -254,7 +280,7 @@ export function SettingsPage() {
             <ShieldCheck size={19} />
             <div>
               <strong>隐私说明</strong>
-              <p>栖时不需要账号，也不会把目标、记录或声音偏好上传到服务器。清理浏览器数据会同时移除本机记录，请定期导出备份。</p>
+              <p>当前版本无需账号，登录、邀请码与会员页面也尚未连接服务器；目标、记录和声音偏好仍只保存在本机。清理浏览器数据会同时移除本机记录，请定期导出备份。</p>
             </div>
             <Info size={15} />
           </article>

@@ -4,6 +4,7 @@ import { AppShell } from './components/AppShell';
 import { useApp } from './context/AppContext';
 import { FocusPage } from './pages/FocusPage';
 import { HomePage } from './pages/HomePage';
+import { AccountPage } from './pages/AccountPage';
 import { RoomPage } from './pages/RoomPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { TrackPage } from './pages/TrackPage';
@@ -48,6 +49,7 @@ function AppRoutes() {
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
       <Route path="/focus" element={<FocusPage />} />
+      <Route path="/account" element={<AccountPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

@@ -15,6 +15,7 @@ const sound = (
     birds: 0,
     waves: 0,
     city: 0,
+    abacus: 0,
     ...ambience,
   },
 });
@@ -141,6 +142,89 @@ export const scenes: Scene[] = [
       fire: 0.12,
     }),
   },
+  {
+    id: 'temple-ginkgo',
+    name: '古寺银杏书阁',
+    shortName: '银杏书阁',
+    description: '山雾绕过檐角，银杏替你翻动秋日。',
+    whisper: '听风经过古寺，把这一页安静地读完。',
+    image: '/scenes/temple-ginkgo.webp',
+    avif: '/scenes/temple-ginkgo.avif',
+    poster: '/scenes/temple-ginkgo-poster.webp',
+    posterAvif: '/scenes/temple-ginkgo-poster.avif',
+    effect: 'ginkgo',
+    details: {
+      steam: [{ x: 80.5, y: 65.2, scale: 1.05 }],
+      glow: { x: 93.2, y: 49.5, size: 18 },
+    },
+    palette: {
+      primary: '#59462d',
+      accent: '#d5aa61',
+      overlay: 'rgba(35, 27, 17, .23)',
+    },
+    recommended: sound('piano', 0.15, {
+      wind: 0.2,
+      birds: 0.13,
+      abacus: 0.2,
+    }),
+  },
+  {
+    id: 'night-train',
+    name: '夜行山谷书厢',
+    shortName: '夜行书厢',
+    description: '列车穿过雨夜，窗内只留一盏阅读灯。',
+    whisper: '让沿途灯火向后退去，只陪眼前这件事向前。',
+    image: '/scenes/night-train.webp',
+    avif: '/scenes/night-train.avif',
+    poster: '/scenes/night-train-poster.webp',
+    posterAvif: '/scenes/night-train-poster.avif',
+    effect: 'train',
+    details: {
+      steam: [{ x: 63.4, y: 71.4, scale: 0.82 }],
+      glow: { x: 83.1, y: 47.5, size: 17 },
+    },
+    palette: {
+      primary: '#213a4d',
+      accent: '#d1a05b',
+      overlay: 'rgba(5, 18, 31, .3)',
+    },
+    recommended: sound('lofi', 0.17, {
+      rain: 0.46,
+      city: 0.14,
+      wind: 0.1,
+    }),
+  },
+  {
+    id: 'morning-classroom',
+    name: '纸绘晨光课室',
+    shortName: '晨光课室',
+    description: '旧课桌晒着晨光，把熟悉的上课铃留在记忆里。',
+    whisper: '像从前第一节课那样，先认真坐好，再慢慢开始。',
+    image: '/scenes/morning-classroom.webp',
+    avif: '/scenes/morning-classroom.avif',
+    poster: '/scenes/morning-classroom-poster.webp',
+    posterAvif: '/scenes/morning-classroom-poster.avif',
+    effect: 'classroom',
+    details: {
+      steam: [{ x: 85.6, y: 67.4, scale: 0.76 }],
+      glow: {
+        x: 75.5,
+        y: 39.5,
+        size: 28,
+        color: 'rgba(255, 210, 128, .3)',
+      },
+    },
+    palette: {
+      primary: '#65502f',
+      accent: '#d7a857',
+      overlay: 'rgba(56, 39, 18, .13)',
+    },
+    recommended: sound('piano', 0.15, {
+      birds: 0.2,
+      wind: 0.13,
+      abacus: 0.14,
+    }),
+  },
 ];
 
 export const defaultPreferences: Preferences = {
@@ -183,6 +267,7 @@ export const normalizeSound = (
     birds: validNumber(value?.ambience?.birds, fallback.ambience.birds),
     waves: validNumber(value?.ambience?.waves, fallback.ambience.waves),
     city: validNumber(value?.ambience?.city, fallback.ambience.city),
+    abacus: validNumber(value?.ambience?.abacus, fallback.ambience.abacus),
   },
 });
 

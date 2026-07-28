@@ -3,7 +3,15 @@ export type TimerStyle = 'large' | 'compact';
 export type TimerStatus = 'running' | 'paused';
 export type SessionStatus = 'completed' | 'abandoned';
 export type MusicType = 'piano' | 'lofi' | 'none';
-export type SceneEffect = 'rain' | 'mist' | 'city' | 'sea' | 'snow';
+export type SceneEffect =
+  | 'rain'
+  | 'mist'
+  | 'city'
+  | 'sea'
+  | 'snow'
+  | 'ginkgo'
+  | 'train'
+  | 'classroom';
 export type Quality = 'high' | 'low';
 
 export type AmbienceKey =
@@ -12,7 +20,8 @@ export type AmbienceKey =
   | 'fire'
   | 'birds'
   | 'waves'
-  | 'city';
+  | 'city'
+  | 'abacus';
 
 export interface Task {
   id: string;

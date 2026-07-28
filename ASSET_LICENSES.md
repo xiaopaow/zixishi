@@ -6,7 +6,7 @@
 
 ## 原创场景插画
 
-以下五套场景使用 OpenAI 内置 ImageGen 为本项目单独生成，之后转换为 AVIF / WebP 主图与低清占位图：
+以下八套场景使用 OpenAI 内置 ImageGen 为本项目单独生成，之后转换为 AVIF / WebP 主图与低清占位图：
 
 | 场景 | 发布文件 | 生成源文件 |
 | --- | --- | --- |
@@ -15,14 +15,17 @@
 | 深夜城市阁楼 | `city-loft.webp`、`city-loft.avif` 及对应 `-poster` 文件 | `exec-7d9590a9-0b63-4ef1-84e1-1d9159324001.png` |
 | 海边黄昏工作室 | `seaside-dusk.webp`、`seaside-dusk.avif` 及对应 `-poster` 文件 | `exec-40c467ed-5ce9-4b22-bdc9-6694c743dc1e.png` |
 | 雪山云窗茶室 | `snow-tea.webp`、`snow-tea.avif` 及对应 `-poster` 文件 | `call_5FoTzAmWvJOmKQxHd8jNkMBI.png` |
+| 古寺银杏书阁 | `temple-ginkgo.webp`、`temple-ginkgo.avif` 及对应 `-poster` 文件 | `call_EOgvJWPnboCTNgVHTahJDsi6.png` |
+| 夜行山谷书厢 | `night-train.webp`、`night-train.avif` 及对应 `-poster` 文件 | `call_hB41mu14nmNy8IGR0Yt1jFpj.png` |
+| 纸绘晨光课室 | `morning-classroom.webp`、`morning-classroom.avif` 及对应 `-poster` 文件 | `call_l7fhdL4KUwYq74ExIQUNwEid.png` |
 
-生成提示词采用统一约束：16:9 响应式 PWA 场景背景、东方电影感概念插画、绘画写实质感、为计时器保留左侧或中央负空间、无人、无文字、无品牌、无水印、无界面元素。主题分别为江南雨夜书房、晨雾竹院、深夜城市阁楼、海边黄昏工作室和雪山云窗茶室。雪山场景进一步要求 8K 级微细节、右下陶壶与清晰壶嘴、静态母图不绘制蒸汽，以便运行时用 Canvas / CSS 生成可关闭的循环茶汽。
+生成提示词采用统一约束：16:9 响应式 PWA 场景背景、东方电影感概念插画、8K 级微细节、为计时器保留左侧或中央负空间、无人、无文字、无品牌、无水印、无界面元素。主题包括江南雨夜书房、晨雾竹院、深夜城市阁楼、海边黄昏工作室、雪山云窗茶室、古寺银杏书阁、夜行山谷书厢和纸绘晨光课室。雪山、古寺、列车与课室场景进一步要求为陶壶、香炉、茶杯、灯具与窗外区域保留明确锚点，静态母图不绘制蒸汽、落叶、雨痕或浮尘，以便运行时用 Canvas / CSS 生成可关闭的循环动效。
 
 生成源文件保存在本地 Codex 生成目录中，不作为运行时资源发布。运行时优先使用 AVIF，并以 WebP 作为兼容回退；两种格式都提供主图和低清占位图。
 
 ## 声音
 
-音乐、雨、风、炉火、鸟鸣、海浪、城市底噪和完成提示音均由 `src/audio/audioEngine.ts` 使用 Web Audio API 实时合成。仓库不包含第三方录音、采样包或音乐文件。
+音乐、雨、风、炉火、鸟鸣、海浪、城市底噪、算珠声和完成提示音均由 `src/audio/audioEngine.ts` 使用 Web Audio API 实时合成。仓库不包含第三方录音、采样包或音乐文件。
 
 ## 图标
 

@@ -2,6 +2,7 @@ import {
   ArrowLeft,
   BarChart3,
   Check,
+  Coffee,
   Expand,
   Image,
   Leaf,
@@ -293,6 +294,20 @@ export function FocusPage() {
           <button type="button" className="restore-sound liquid-glass" onClick={() => void resumeSound()}>
             <Volume2 size={17} /> 点击恢复声音
           </button>
+        )}
+
+        {activeTimer?.status === 'paused' && (
+          <aside className="away-pause-card liquid-glass" aria-live="polite">
+            <span className="away-pause-icon"><Coffee size={18} /></span>
+            <div>
+              <small>安心离席</small>
+              <strong>计时已经暂停</strong>
+              <p>去接电话、喝水或休息一下，回来后再继续，不会损失剩余时间。</p>
+            </div>
+            <button type="button" onClick={() => void togglePause()}>
+              <Play size={15} fill="currentColor" /> 回来继续
+            </button>
+          </aside>
         )}
 
         {activeTimer && (

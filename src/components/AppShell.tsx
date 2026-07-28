@@ -4,6 +4,7 @@ import {
   Leaf,
   Settings,
   TimerReset,
+  UserRound,
 } from 'lucide-react';
 import { useEffect } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
@@ -55,9 +56,19 @@ export function AppShell() {
             </NavLink>
           ))}
         </nav>
-        <div className="topbar-note">
-          <span className="breathing-dot" />
-          数据仅保存在本机
+        <div className="topbar-actions">
+          <div className="topbar-note">
+            <span className="breathing-dot" />
+            数据仅保存在本机
+          </div>
+          <NavLink
+            to="/account"
+            className="account-entry"
+            aria-label="登录或注册栖时账号"
+          >
+            <UserRound size={16} />
+            <span>登录</span>
+          </NavLink>
         </div>
       </header>
 
