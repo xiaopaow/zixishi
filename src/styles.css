@@ -105,7 +105,6 @@ select:focus-visible {
 }
 
 .page-container:focus,
-.landing-page:focus,
 .account-page:focus,
 .focus-screen:focus,
 .storage-error-page:focus {
@@ -4961,829 +4960,463 @@ input[type="range"]:focus-visible {
   outline-offset: 5px;
 }
 
-/* Public product introduction */
-.landing-page {
-  min-height: 100vh;
-  overflow: hidden;
-  color: #17362f;
-  background: #eee9df;
-}
-
-.account-session-loading {
-  min-height: 390px;
-  justify-content: center;
-}
-
-.account-session-loading .loading-leaf {
-  margin-bottom: 4px;
-}
-
-.landing-hero {
+/* Product account entry */
+.account-page {
   position: relative;
-  min-height: max(760px, 100svh);
-  overflow: hidden;
-  color: #fffaf0;
-  background: #10251f;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  overflow-anchor: none;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   isolation: isolate;
+  color: rgba(250, 252, 250, 0.94);
+  background: #102127;
 }
 
-.landing-hero-image {
-  position: absolute;
-  z-index: -4;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  max-width: none;
-  object-fit: cover;
-  object-position: center 46%;
-  filter: saturate(0.82) contrast(1.02);
-  transform: scale(1.015);
-}
-
-.landing-hero-shade {
-  position: absolute;
-  z-index: -3;
-  inset: 0;
-  background:
-    linear-gradient(90deg, rgba(5, 18, 17, 0.84) 0%, rgba(7, 20, 19, 0.57) 43%, rgba(8, 19, 18, 0.14) 75%),
-    linear-gradient(180deg, rgba(7, 16, 16, 0.42), transparent 28%, rgba(7, 16, 14, 0.58));
-}
-
-.landing-hero-glow {
-  position: absolute;
+.account-backdrop-layer {
+  position: fixed;
   z-index: -2;
-  width: 560px;
-  height: 560px;
-  left: -210px;
-  top: 15%;
-  border-radius: 50%;
-  background: rgba(204, 175, 119, 0.17);
-  filter: blur(90px);
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  contain: strict;
   pointer-events: none;
 }
 
-.landing-header {
-  position: relative;
-  z-index: 5;
-  display: grid;
-  width: min(1380px, calc(100% - 64px));
-  min-height: 74px;
-  margin: calc(22px + var(--qishi-safe-top)) auto 0;
-  padding: 10px 14px 10px 12px;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 30px;
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: 26px;
+.account-backdrop-layer .account-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  max-width: none;
+  object-fit: cover;
+  object-position: 70% center;
+  filter: saturate(0.8) contrast(1.04);
+  transform: none;
+  transition: none;
+  animation: none;
+}
+
+.account-backdrop-layer .account-shade {
+  position: absolute;
+  inset: 0;
   background:
-    radial-gradient(circle at var(--glass-x) var(--glass-y), rgba(255, 255, 255, 0.2), transparent 34%),
-    rgba(32, 47, 44, 0.36);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.38),
-    0 24px 70px rgba(3, 10, 9, 0.22);
-  -webkit-backdrop-filter: blur(24px) saturate(1.18);
-  backdrop-filter: blur(24px) saturate(1.18);
+    linear-gradient(90deg, rgba(6, 17, 21, 0.4), rgba(7, 19, 23, 0.14) 55%, rgba(5, 14, 18, 0.48)),
+    linear-gradient(180deg, rgba(5, 13, 17, 0.22), transparent 36%, rgba(4, 11, 14, 0.36));
 }
 
-.landing-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 11px;
+.account-backdrop-layer .account-shade::after {
+  display: none;
 }
 
-.landing-brand > span {
-  display: grid;
-  width: 46px;
-  height: 46px;
-  place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  border-radius: 16px;
-  color: #f1cf8e;
-  background: rgba(255, 255, 255, 0.1);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
-}
-
-.landing-brand > div {
+.account-entry-layout {
+  position: relative;
+  z-index: 1;
   display: flex;
+  width: min(460px, calc(100% - 48px));
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin-right: clamp(34px, 8vw, 164px);
+  margin-left: auto;
+  padding:
+    max(26px, calc(var(--qishi-safe-top) + 18px))
+    0
+    max(30px, calc(var(--qishi-safe-bottom) + 22px));
+  flex-direction: column;
+  justify-content: flex-start;
+  overflow-anchor: none;
+}
+
+.account-product-brand {
+  display: grid;
+  min-height: 76px;
+  margin-bottom: 18px;
+  grid-template-columns: 48px 1fr;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 0 12px;
+  color: rgba(251, 253, 250, 0.94);
+  text-shadow: 0 3px 24px rgba(1, 11, 15, 0.38);
+}
+
+.account-brand-mark {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  grid-row: 1 / 3;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 17px 17px 17px 6px;
+  color: #f1cf8e;
+  background: rgba(22, 42, 47, 0.76);
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.34),
+    0 15px 35px rgba(2, 12, 16, 0.22);
+}
+
+.account-product-brand > div {
+  display: flex;
+  align-self: end;
   flex-direction: column;
   gap: 2px;
 }
 
-.landing-brand strong {
-  color: #fffdf8;
-  font-family: "Songti SC", "STSong", serif;
+.account-product-brand strong {
+  font-family: "Songti SC", "STSong", "SimSun", serif;
   font-size: 22px;
   font-weight: 500;
   letter-spacing: 0.16em;
 }
 
-.landing-brand small {
-  color: rgba(255, 255, 255, 0.57);
+.account-product-brand small {
+  color: rgba(247, 250, 248, 0.58);
   font-size: 8px;
-  letter-spacing: 0.24em;
-}
-
-.landing-header nav {
-  display: flex;
-  justify-content: center;
-  gap: clamp(24px, 3.4vw, 54px);
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 14px;
-}
-
-.landing-header nav a,
-.landing-login-link {
-  transition: color 160ms ease, background 160ms ease, transform 160ms ease;
-}
-
-.landing-header nav a:hover {
-  color: #fff;
-}
-
-.landing-login-link {
-  display: inline-flex;
-  min-height: 44px;
-  padding: 0 18px;
-  align-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  border-radius: 15px;
-  color: rgba(255, 255, 255, 0.88);
-  background: rgba(255, 255, 255, 0.1);
-  font-size: 13px;
-}
-
-.landing-login-link:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.17);
-  transform: translateY(-1px);
-}
-
-.landing-hero-copy {
-  position: relative;
-  z-index: 2;
-  width: min(1380px, calc(100% - 64px));
-  margin: 0 auto;
-  padding: clamp(112px, 15vh, 172px) 0 154px;
-}
-
-.landing-hero-copy > * {
-  max-width: 650px;
-}
-
-.landing-kicker {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  color: #e5c487;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-}
-
-.landing-hero-copy h1 {
-  margin: 25px 0 24px;
-  color: #fffaf0;
-  font-family: "Songti SC", "STSong", "Noto Serif CJK SC", serif;
-  font-size: clamp(58px, 7vw, 104px);
-  font-weight: 400;
-  line-height: 1.08;
-  letter-spacing: -0.045em;
-  text-shadow: 0 16px 46px rgba(3, 12, 11, 0.32);
-}
-
-.landing-hero-copy > p {
-  max-width: 610px;
-  margin-bottom: 34px;
-  color: rgba(255, 255, 255, 0.76);
-  font-size: clamp(16px, 1.5vw, 19px);
-  line-height: 1.9;
-}
-
-.landing-hero-actions {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-}
-
-.landing-primary-cta,
-.landing-secondary-cta {
-  display: inline-flex;
-  min-height: 56px;
-  padding: 0 24px;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  border-radius: 18px;
-  font-size: 14px;
-  font-weight: 700;
-  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
-}
-
-.landing-primary-cta {
-  color: #173d35;
-  background: rgba(255, 252, 244, 0.94);
-  box-shadow:
-    inset 0 1px 0 #fff,
-    0 16px 40px rgba(2, 11, 10, 0.22);
-}
-
-.landing-primary-cta:hover {
-  transform: translateY(-2px);
-  box-shadow:
-    inset 0 1px 0 #fff,
-    0 20px 50px rgba(2, 11, 10, 0.3);
-}
-
-.landing-primary-cta.is-loading {
-  opacity: 0.78;
-}
-
-.landing-secondary-cta {
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  color: rgba(255, 255, 255, 0.86);
-  background: rgba(255, 255, 255, 0.08);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-}
-
-.landing-secondary-cta:hover {
-  background: rgba(255, 255, 255, 0.14);
-  transform: translateY(-2px);
-}
-
-.landing-trust-row {
-  display: flex;
-  margin-top: 28px;
-  flex-wrap: wrap;
-  gap: 10px 20px;
-  color: rgba(255, 255, 255, 0.59);
-  font-size: 12px;
-}
-
-.landing-trust-row span {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.landing-hero-note {
-  position: absolute;
-  z-index: 2;
-  right: max(32px, calc((100% - 1380px) / 2));
-  bottom: 42px;
-  display: flex;
-  min-width: 250px;
-  padding: 16px 19px;
-  align-items: center;
-  gap: 13px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 18px;
-  color: rgba(255, 255, 255, 0.76);
-  background: rgba(18, 34, 31, 0.35);
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
-}
-
-.landing-hero-note > div {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.landing-hero-note small {
-  color: rgba(255, 255, 255, 0.43);
-  font-size: 9px;
   letter-spacing: 0.18em;
 }
 
-.landing-hero-note strong {
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.landing-section {
-  width: min(1320px, calc(100% - 64px));
-  margin: 0 auto;
-  padding: 120px 0;
-}
-
-.landing-section-heading {
-  max-width: 760px;
-  margin-bottom: 50px;
-}
-
-.landing-section-heading h2,
-.landing-beta-copy h2 {
-  margin: 17px 0 20px;
-  color: #183e36;
-  font-family: "Songti SC", "STSong", "Noto Serif CJK SC", serif;
-  font-size: clamp(38px, 4.5vw, 64px);
-  font-weight: 400;
-  line-height: 1.2;
-  letter-spacing: -0.035em;
-}
-
-.landing-section-heading > p,
-.landing-heading-row > p,
-.landing-beta-copy > p {
-  color: #67736f;
-  font-size: 15px;
-  line-height: 1.85;
-}
-
-.landing-feature-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 18px;
-}
-
-.landing-glass-card {
-  position: relative;
-  min-height: 310px;
-  padding: 30px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.84);
-  border-radius: 30px;
-  background:
-    radial-gradient(circle at var(--glass-x) var(--glass-y), rgba(255, 255, 255, 0.78), transparent 34%),
-    rgba(255, 253, 247, 0.48);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.92),
-    0 24px 70px rgba(35, 56, 49, 0.09);
-  -webkit-backdrop-filter: blur(22px) saturate(1.15);
-  backdrop-filter: blur(22px) saturate(1.15);
-}
-
-.landing-feature-icon {
-  display: grid;
-  width: 54px;
-  height: 54px;
-  margin-bottom: 42px;
-  place-items: center;
-  border: 1px solid rgba(31, 81, 72, 0.12);
-  border-radius: 18px;
-  color: #276055;
-  background: rgba(222, 233, 226, 0.7);
-}
-
-.landing-glass-card small {
-  color: #aa7d44;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-}
-
-.landing-glass-card h3 {
-  margin: 10px 0 13px;
-  color: #1d4038;
-  font-family: "Songti SC", "STSong", serif;
-  font-size: 25px;
-  font-weight: 500;
-  line-height: 1.35;
-}
-
-.landing-glass-card p {
-  margin-bottom: 0;
-  color: #6d7774;
-  font-size: 14px;
-  line-height: 1.8;
-}
-
-.landing-scenes {
-  width: 100%;
-  padding-right: max(32px, calc((100% - 1320px) / 2));
-  padding-left: max(32px, calc((100% - 1320px) / 2));
-  color: #fff;
-  background: #122b25;
-}
-
-.landing-scenes .landing-section-heading h2 {
-  color: #fffaf0;
-}
-
-.landing-heading-row {
-  display: grid;
-  max-width: none;
-  grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.6fr);
-  align-items: end;
-  gap: 60px;
-}
-
-.landing-heading-row > p {
-  margin-bottom: 10px;
-  color: rgba(255, 255, 255, 0.56);
-}
-
-.landing-scene-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
-}
-
-.landing-scene-card {
-  position: relative;
-  min-height: 410px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 30px;
-  background: #223a34;
-  box-shadow: 0 28px 70px rgba(2, 13, 10, 0.24);
-}
-
-.landing-scene-card > img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  max-width: none;
-  object-fit: cover;
-  transition: transform 650ms cubic-bezier(0.22, 0.7, 0.25, 1);
-}
-
-.landing-scene-card:hover > img {
-  transform: scale(1.035);
-}
-
-.landing-scene-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, transparent 38%, rgba(5, 16, 14, 0.82));
-}
-
-.landing-scene-card > div:last-child {
-  position: absolute;
-  right: 28px;
-  bottom: 26px;
-  left: 28px;
-}
-
-.landing-scene-card small {
-  color: #e4bf7e;
-  font-size: 9px;
-  letter-spacing: 0.2em;
-}
-
-.landing-scene-card h3 {
-  margin: 9px 0 5px;
-  font-family: "Songti SC", "STSong", serif;
-  font-size: 28px;
-  font-weight: 500;
-}
-
-.landing-scene-card p {
-  margin-bottom: 0;
-  color: rgba(255, 255, 255, 0.65);
-  font-size: 13px;
-}
-
-.landing-beta {
-  display: grid;
-  margin-top: 110px;
-  margin-bottom: 110px;
-  padding: clamp(44px, 6vw, 76px);
-  grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.7fr);
-  gap: clamp(40px, 8vw, 110px);
-  border: 1px solid rgba(255, 255, 255, 0.82);
-  border-radius: 42px;
-  background:
-    radial-gradient(circle at 90% 5%, rgba(204, 180, 128, 0.25), transparent 38%),
-    rgba(255, 253, 247, 0.58);
-  box-shadow:
-    inset 0 1px 0 #fff,
-    0 32px 90px rgba(34, 54, 48, 0.12);
-  -webkit-backdrop-filter: blur(24px);
-  backdrop-filter: blur(24px);
-}
-
-.landing-beta-copy > p {
-  max-width: 690px;
-  margin-bottom: 28px;
-}
-
-.landing-dark-cta {
-  color: #fffaf1;
-  background: #1d4a40;
-  box-shadow: 0 16px 36px rgba(25, 67, 58, 0.2);
-}
-
-.landing-step-list {
-  display: flex;
-  margin: 0;
-  padding: 0;
-  flex-direction: column;
-  justify-content: center;
-  list-style: none;
-}
-
-.landing-step-list li {
-  display: grid;
-  padding: 24px 0;
-  grid-template-columns: 50px 1fr;
-  gap: 18px;
-  border-bottom: 1px solid rgba(30, 68, 59, 0.12);
-}
-
-.landing-step-list li:last-child {
-  border-bottom: 0;
-}
-
-.landing-step-list li > span {
-  display: grid;
-  width: 42px;
-  height: 42px;
-  place-items: center;
-  border-radius: 14px;
-  color: #9c713b;
-  background: rgba(206, 182, 132, 0.17);
+.account-product-brand > p {
+  align-self: start;
+  margin: 7px 0 0;
+  color: rgba(245, 249, 247, 0.72);
   font-size: 11px;
-  font-weight: 700;
+  line-height: 1.55;
 }
 
-.landing-step-list h3 {
-  margin: 0 0 7px;
-  color: #21473e;
-  font-family: "Songti SC", "STSong", serif;
-  font-size: 21px;
-  font-weight: 600;
+.account-entry-layout .account-glass-shell {
+  width: 100%;
+  min-height: 0;
+  padding: 1px;
+  border-radius: 32px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.1) 36%, rgba(183, 217, 226, 0.3) 70%, rgba(255, 255, 255, 0.38));
+  box-shadow:
+    0 36px 90px rgba(0, 8, 12, 0.43),
+    inset 0 1px rgba(255, 255, 255, 0.48);
 }
 
-.landing-step-list p {
-  margin-bottom: 0;
-  color: #6b7773;
-  font-size: 13px;
-  line-height: 1.7;
-}
-
-.landing-footer {
-  display: grid;
-  min-height: 180px;
-  padding: 42px max(32px, calc((100% - 1320px) / 2));
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 48px;
-  color: rgba(255, 255, 255, 0.62);
-  background: #0e231e;
-}
-
-.landing-footer .landing-brand > span {
-  width: 42px;
-  height: 42px;
-}
-
-.landing-footer .landing-brand strong {
-  font-size: 18px;
-}
-
-.landing-footer p {
-  max-width: 600px;
-  margin: 0;
-  justify-self: center;
-  font-size: 12px;
-  line-height: 1.7;
-  text-align: center;
-}
-
-.landing-footer > div:last-child {
-  display: flex;
-  gap: 22px;
-  font-size: 12px;
-}
-
-.landing-footer > div:last-child a:hover {
-  color: #fff;
-}
-
-html.native-app .landing-header,
-html.native-app .landing-secondary-cta,
-html.native-app .landing-hero-note,
-html.native-app .landing-glass-card,
-html.native-app .landing-beta {
+.account-entry-layout .account-card {
+  min-height: 0;
+  padding: 29px;
+  border-radius: 31px;
+  background:
+    radial-gradient(circle at 18% 2%, rgba(255, 255, 255, 0.2), transparent 29%),
+    linear-gradient(150deg, rgba(74, 103, 111, 0.94), rgba(28, 53, 61, 0.96) 58%, rgba(17, 36, 42, 0.98));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    inset 1px 0 rgba(255, 255, 255, 0.12);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
 
-html.native-app .landing-header,
-html.native-app .landing-hero-note {
-  background: rgba(27, 43, 40, 0.82);
+.account-entry-layout .account-mode-switch {
+  border-radius: 15px;
 }
 
-html.native-app .landing-glass-card,
-html.native-app .landing-beta {
-  background: rgba(250, 247, 239, 0.95);
+.account-entry-layout .account-title {
+  margin: 25px 0 19px;
 }
 
-@media (max-width: 900px) {
-  .landing-header {
-    width: min(100% - 32px, 720px);
-    margin-top: calc(14px + var(--qishi-safe-top));
+.account-entry-layout .account-title > span {
+  width: 42px;
+  height: 42px;
+}
+
+.account-entry-layout .account-title h1 {
+  margin: 4px 0 0;
+  font-family: "Songti SC", "STSong", "SimSun", serif;
+  font-size: 25px;
+  font-weight: 500;
+}
+
+.account-entry-layout .account-form > label {
+  margin-top: 14px;
+}
+
+.account-entry-layout .account-input {
+  height: 48px;
+  background: rgba(3, 16, 20, 0.27);
+}
+
+.account-entry-layout .account-input.has-error {
+  border-color: rgba(239, 154, 140, 0.76);
+  box-shadow:
+    0 0 0 3px rgba(220, 102, 87, 0.11),
+    inset 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.account-field-error {
+  display: flex;
+  margin: 7px 4px 0;
+  align-items: center;
+  gap: 5px;
+  color: rgba(255, 189, 178, 0.92);
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.account-form-actions,
+.account-terms {
+  margin: 14px 2px 18px;
+}
+
+.account-form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: rgba(233, 242, 240, 0.57);
+  font-size: 9px;
+}
+
+.account-form-actions > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.account-form-actions button {
+  padding: 4px 0;
+  border: 0;
+  cursor: pointer;
+  color: rgba(238, 215, 174, 0.88);
+  background: transparent;
+  font-size: 9px;
+}
+
+.account-terms > label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(236, 244, 242, 0.67);
+  font-size: 9px;
+}
+
+.account-terms input {
+  accent-color: #d8b779;
+}
+
+.account-entry-layout .account-submit {
+  height: 50px;
+}
+
+.account-entry-layout .account-submit:disabled {
+  cursor: wait;
+  opacity: 0.68;
+  transform: none;
+}
+
+.account-notice,
+.account-data-note {
+  min-height: 28px;
+  margin: 12px 2px 0;
+  font-size: 8px;
+  line-height: 1.55;
+}
+
+.account-notice {
+  display: flex;
+  padding: 8px 10px;
+  align-items: flex-start;
+  gap: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.account-notice svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.account-notice.error {
+  color: rgba(255, 204, 195, 0.92);
+  background: rgba(132, 49, 39, 0.2);
+}
+
+.account-notice.success {
+  color: rgba(211, 239, 223, 0.9);
+  background: rgba(49, 112, 82, 0.2);
+}
+
+.account-notice.info,
+.account-data-note {
+  color: rgba(229, 238, 236, 0.48);
+}
+
+.account-entry-layout .account-session {
+  min-height: 465px;
+}
+
+.account-entry-layout .account-session h1 {
+  margin: 9px 0 4px;
+  font-family: "Songti SC", "STSong", "SimSun", serif;
+  font-size: 28px;
+  font-weight: 500;
+}
+
+.account-entry-layout .account-session-loading {
+  min-height: 440px;
+}
+
+.account-entry-layout .account-session .account-data-note {
+  max-width: 310px;
+  text-align: center;
+}
+
+.account-plus-badge {
+  display: flex;
+  min-height: 48px;
+  margin: 12px auto 0;
+  padding: 9px 13px;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 15px;
+  color: rgba(244, 247, 245, 0.72);
+  background: rgba(14, 35, 40, 0.88);
+  box-shadow: 0 14px 35px rgba(1, 10, 13, 0.2);
+}
+
+.account-plus-badge > svg {
+  color: #efd09b;
+}
+
+.account-plus-badge > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.account-plus-badge strong {
+  color: rgba(245, 226, 190, 0.9);
+  font-family: "Songti SC", "STSong", serif;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.account-plus-badge small {
+  color: rgba(236, 242, 240, 0.5);
+  font-size: 7px;
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 820px) {
+  .account-entry-layout {
+    width: min(460px, calc(100% - 32px));
+    margin-right: auto;
+    margin-left: auto;
+    padding-top: max(20px, calc(var(--qishi-safe-top) + 14px));
   }
 
-  .landing-header nav {
-    display: none;
-  }
-
-  .landing-hero-copy {
-    width: min(100% - 44px, 720px);
-    padding-top: clamp(112px, 17vh, 150px);
-  }
-
-  .landing-hero-note {
-    display: none;
-  }
-
-  .landing-section {
-    width: min(100% - 40px, 760px);
-    padding: 88px 0;
-  }
-
-  .landing-feature-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .landing-glass-card {
-    min-height: 260px;
-  }
-
-  .landing-feature-icon {
-    margin-bottom: 28px;
-  }
-
-  .landing-scenes {
-    width: 100%;
-    padding-right: 20px;
-    padding-left: 20px;
-  }
-
-  .landing-heading-row,
-  .landing-beta {
-    grid-template-columns: 1fr;
-  }
-
-  .landing-heading-row {
-    gap: 10px;
-  }
-
-  .landing-scene-card {
-    min-height: 330px;
-  }
-
-  .landing-beta {
-    width: min(100% - 40px, 760px);
-    margin-top: 74px;
-    margin-bottom: 74px;
-    padding: 42px;
-  }
-
-  .landing-footer {
-    grid-template-columns: 1fr;
-    justify-items: center;
-    gap: 24px;
-    text-align: center;
+  .account-backdrop-layer .account-backdrop {
+    object-position: 68% center;
   }
 }
 
-@media (max-width: 620px) {
-  .landing-hero {
-    min-height: max(720px, 100svh);
+@media (max-width: 600px) {
+  .account-entry-layout {
+    width: calc(
+      100% - 24px - var(--qishi-safe-left) - var(--qishi-safe-right)
+    );
+    padding-bottom: max(22px, calc(var(--qishi-safe-bottom) + 16px));
   }
 
-  .landing-hero-image {
-    object-position: 62% center;
+  .account-product-brand {
+    min-height: 66px;
+    margin-bottom: 12px;
+    grid-template-columns: 42px 1fr;
+    gap: 0 10px;
   }
 
-  .landing-hero-shade {
-    background:
-      linear-gradient(90deg, rgba(5, 18, 17, 0.73), rgba(7, 20, 19, 0.28)),
-      linear-gradient(180deg, rgba(7, 16, 16, 0.34), transparent 23%, rgba(6, 17, 15, 0.78));
-  }
-
-  .landing-header {
-    width: calc(100% - 24px);
-    min-height: 64px;
-    padding: 8px;
-    border-radius: 22px;
-  }
-
-  .landing-brand > span {
+  .account-brand-mark {
     width: 42px;
     height: 42px;
-    border-radius: 14px;
+    border-radius: 15px 15px 15px 5px;
   }
 
-  .landing-brand strong {
-    font-size: 19px;
+  .account-product-brand strong {
+    font-size: 20px;
   }
 
-  .landing-header .landing-brand small {
-    display: none;
+  .account-product-brand > p {
+    margin-top: 5px;
+    font-size: 10px;
   }
 
-  .landing-login-link {
-    min-height: 42px;
-    padding: 0 13px;
-    font-size: 12px;
+  .account-entry-layout .account-card {
+    padding: 24px 21px;
+    border-radius: 27px;
   }
 
-  .landing-hero-copy {
-    width: calc(100% - 36px);
-    padding-top: clamp(116px, 18vh, 154px);
-    padding-bottom: calc(72px + var(--qishi-safe-bottom));
+  .account-entry-layout .account-glass-shell {
+    border-radius: 28px;
   }
 
-  .landing-hero-copy h1 {
-    margin: 20px 0 20px;
-    font-size: clamp(48px, 15.5vw, 68px);
-    line-height: 1.1;
+  .account-entry-layout .account-title {
+    margin: 22px 0 17px;
   }
 
-  .landing-hero-copy > p {
-    font-size: 15px;
-    line-height: 1.78;
+  .account-entry-layout .account-title h1 {
+    font-size: 23px;
   }
 
-  .landing-hero-actions {
-    align-items: stretch;
-    flex-direction: column;
+  .account-entry-layout .account-session,
+  .account-entry-layout .account-session-loading {
+    min-height: 410px;
+  }
+}
+
+@media (max-height: 620px) and (orientation: landscape) {
+  .account-entry-layout {
+    width: min(430px, calc(100% - 30px));
+    margin-right: max(18px, var(--qishi-safe-right));
+    padding-top: max(12px, var(--qishi-safe-top));
   }
 
-  .landing-primary-cta,
-  .landing-secondary-cta {
-    width: 100%;
+  .account-product-brand {
     min-height: 54px;
+    margin-bottom: 9px;
   }
 
-  .landing-trust-row {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 9px;
-  }
-
-  .landing-section {
-    width: calc(100% - 32px);
-    padding: 72px 0;
-  }
-
-  .landing-section-heading {
-    margin-bottom: 34px;
-  }
-
-  .landing-section-heading h2,
-  .landing-beta-copy h2 {
-    font-size: clamp(34px, 10vw, 44px);
-  }
-
-  .landing-glass-card {
-    min-height: 0;
-    padding: 25px;
-    border-radius: 25px;
-  }
-
-  .landing-scenes {
-    width: 100%;
-    padding-right: 16px;
-    padding-left: 16px;
-  }
-
-  .landing-scene-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .landing-scene-card {
-    min-height: 300px;
-    border-radius: 25px;
-  }
-
-  .landing-beta {
-    width: calc(100% - 32px);
-    margin-top: 56px;
-    margin-bottom: 56px;
-    padding: 28px 22px;
-    gap: 24px;
-    border-radius: 30px;
-  }
-
-  .landing-step-list li {
-    grid-template-columns: 42px 1fr;
-    gap: 14px;
-  }
-
-  .landing-footer {
-    padding-top: 44px;
-    padding-bottom: calc(44px + var(--qishi-safe-bottom));
-  }
-
-  .landing-footer > div:last-child {
-    flex-wrap: wrap;
-    justify-content: center;
+  .account-entry-layout .account-card {
+    padding: 22px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .landing-scene-card > img,
-  .landing-primary-cta,
-  .landing-secondary-cta,
-  .landing-login-link {
-    transition: none;
+  .account-backdrop-layer *,
+  .account-entry-layout * {
+    scroll-behavior: auto;
   }
+}
+
+.invite-settings-card .invite-manager {
+  margin: 0;
+  border-color: rgba(32, 72, 63, 0.12);
+  color: #244a41;
+  background: rgba(240, 241, 233, 0.62);
+}
+
+.invite-settings-card .invite-manager-heading small,
+.invite-settings-card .invite-manager label > span,
+.invite-settings-card .invite-history small,
+.invite-settings-card .invite-history em,
+.invite-settings-card .invite-history > p {
+  color: rgba(40, 72, 64, 0.58);
+}
+
+.invite-settings-card .invite-manager-heading h3,
+.invite-settings-card .invite-history strong {
+  color: #244a41;
+}
+
+.invite-settings-card .invite-manager input,
+.invite-settings-card .invite-code-row {
+  border-color: rgba(32, 72, 63, 0.13);
+  color: #23483f;
+  background: rgba(255, 255, 255, 0.56);
 }

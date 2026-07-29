@@ -18,10 +18,12 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { audioEngine } from '../audio/audioEngine';
+import { InviteManager } from '../components/InviteManager';
 import { Modal } from '../components/Modal';
 import { SoundMixer } from '../components/SoundMixer';
 import { useApp } from '../context/AppContext';
 import { clearData, exportData, importData } from '../db';
+import { useAccountSession } from '../hooks/useAccountSession';
 import {
   cancelFocusCompletionNotification,
   isNativeApp,
@@ -36,6 +38,7 @@ interface InstallPromptEvent extends Event {
 }
 
 export function SettingsPage() {
+  const account = useAccountSession();
   const {
     preferences,
     activeTimer,
@@ -172,22 +175,28 @@ export function SettingsPage() {
               <span><Crown size={18} /></span>
               <div>
                 <h2>栖时账号与会员</h2>
-                <p>账号体系预览 · Plus 权益即将开放</p>
+                <p>安全会话已连接 · Plus 权益即将开放</p>
               </div>
             </div>
             <div className="membership-settings-copy">
               <div>
                 <UserRound size={18} />
                 <span>
-                  <strong>当前使用本机模式</strong>
-                  <small>任务与轨迹不会自动上传，未来可自愿开启同步。</small>
+                  <strong>{account?.name || '栖时账号'}</strong>
+                  <small>{account?.email || '登录后管理账号与会话'}</small>
                 </span>
               </div>
-              <Link to="/account">
-                查看登录注册界面 <ArrowRight size={16} />
+              <Link to="/">
+                管理栖时账号 <ArrowRight size={16} />
               </Link>
             </div>
           </article>
+
+          {account?.role === 'admin' && (
+            <article className="glass-card settings-card invite-settings-card">
+              <InviteManager />
+            </article>
+          )}
 
           <article className="glass-card settings-card">
             <div className="settings-card-title">
@@ -336,7 +345,7 @@ export function SettingsPage() {
             <div>
               <strong>隐私说明</strong>
               <p>
-                当前版本无需账号，登录、邀请码与会员页面也尚未连接服务器；目标、记录和声音偏好仍只保存在本机。
+                栖时使用安全账号服务处理邮箱登录、会话续期与邀请码核验，不会在本机保存明文密码。目标、专注记录和声音偏好仍默认只保存在当前设备。
                 {isNativeApp
                   ? '卸载应用或清除应用数据会移除本机记录，请定期导出备份。'
                   : '清理浏览器数据会同时移除本机记录，请定期导出备份。'}

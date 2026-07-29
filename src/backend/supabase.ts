@@ -127,7 +127,7 @@ export async function registerWithInvite(input: {
         display_name: input.name.trim(),
         invite_code: input.inviteCode.trim().toUpperCase(),
       },
-      emailRedirectTo: `${publicAppUrl}/account?confirmed=1`,
+      emailRedirectTo: `${publicAppUrl}/?confirmed=1`,
     },
   });
   if (error) throw error;
@@ -159,7 +159,7 @@ export async function sendPasswordReset(email: string) {
   const client = getSupabaseClient();
   if (!client) throw new Error('账号服务尚未配置');
   const { error } = await client.auth.resetPasswordForEmail(email, {
-    redirectTo: `${publicAppUrl}/account?recovery=1`,
+    redirectTo: `${publicAppUrl}/?recovery=1`,
   });
   if (error) throw error;
 }

@@ -18,7 +18,6 @@ import {
   isNativeApp,
   NATIVE_FOCUS_BACK_EVENT,
 } from './native/mobile';
-import { LandingPage } from './pages/LandingPage';
 
 const AccountPage = lazy(() =>
   import('./pages/AccountPage').then(({ AccountPage: page }) => ({
@@ -72,7 +71,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
     const returnTo = `${location.pathname}${location.search}`;
     return (
       <Navigate
-        to={`/account?returnTo=${encodeURIComponent(returnTo)}`}
+        to={`/?returnTo=${encodeURIComponent(returnTo)}`}
         replace
       />
     );
@@ -113,6 +112,20 @@ function AppStorageGate({ children }: { children: ReactNode }) {
   }
 
   return children;
+}
+
+function LegacyAccountRedirect() {
+  const location = useLocation();
+  return (
+    <Navigate
+      to={{
+        pathname: '/',
+        search: location.search,
+        hash: location.hash,
+      }}
+      replace
+    />
+  );
 }
 
 function AppRoutes() {
@@ -191,7 +204,7 @@ function AppRoutes() {
 
   useEffect(() => {
     const titles: Record<string, string> = {
-      '/': '栖时 · 东方疗愈自习室',
+      '/': '栖时账号 · 登录与注册',
       '/app': '今日自习 · 栖时',
       '/room': '专注室 · 栖时',
       '/track': '专注轨迹 · 栖时',
@@ -241,8 +254,8 @@ function AppRoutes() {
       </a>
       <Suspense fallback={<RouteLoading />}>
         <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/account" element={<AccountPage />} />
+          <Route path="/" element={<AccountPage />} />
+          <Route path="/account" element={<LegacyAccountRedirect />} />
           <Route
             element={(
               <ProtectedRoute>

@@ -64,7 +64,7 @@ export function AppShell() {
             数据仅保存在本机
           </div>
           <NavLink
-            to="/account"
+            to="/"
             className="account-entry"
             aria-label={account ? `${account.name}的栖时账号` : '登录或注册栖时账号'}
           >
