@@ -38,7 +38,6 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globIgnores: ['runtime-config.js'],
         globPatterns: [
           '**/*.{js,css,html,svg,png}',
           'scenes/rain-study-poster.{webp,avif}',

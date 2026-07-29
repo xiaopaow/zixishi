@@ -1,26 +1,19 @@
-type QishiRuntimeConfig = {
-  VITE_SUPABASE_URL?: string;
-  VITE_SUPABASE_PUBLISHABLE_KEY?: string;
-  VITE_SUPABASE_ANON_KEY?: string;
-  VITE_PUBLIC_APP_URL?: string;
-};
+const runtimeConfig = globalThis.__QISHI_CONFIG__;
 
-const runtimeConfig = (
-  globalThis as typeof globalThis & {
-    __QISHI_CONFIG__?: QishiRuntimeConfig;
-  }
-).__QISHI_CONFIG__;
-
-export const supabaseProjectUrl = (
-  import.meta.env.VITE_SUPABASE_URL ??
-  runtimeConfig?.VITE_SUPABASE_URL
-)?.trim();
-export const supabasePublishableKey = (
+const buildProjectUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
+const buildPublishableKey = (
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
-  import.meta.env.VITE_SUPABASE_ANON_KEY ??
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+)?.trim();
+const runtimeProjectUrl = runtimeConfig?.VITE_SUPABASE_URL?.trim();
+const runtimePublishableKey = (
   runtimeConfig?.VITE_SUPABASE_PUBLISHABLE_KEY ??
   runtimeConfig?.VITE_SUPABASE_ANON_KEY
 )?.trim();
+
+export const supabaseProjectUrl = buildProjectUrl || runtimeProjectUrl;
+export const supabasePublishableKey =
+  buildPublishableKey || runtimePublishableKey;
 
 export const supabaseConfigured = Boolean(
   supabaseProjectUrl && supabasePublishableKey,

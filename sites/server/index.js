@@ -11,19 +11,15 @@ const runtimeConfigResponse = (env) => {
       '',
     VITE_PUBLIC_APP_URL: env?.VITE_PUBLIC_APP_URL ?? '',
   };
-  const serialized = JSON.stringify(config)
-    .replaceAll('\u2028', '\\u2028')
-    .replaceAll('\u2029', '\\u2029');
-
-  return new Response(
-    `globalThis.__QISHI_CONFIG__ = ${serialized};`,
-    {
-      headers: {
-        'content-type': 'text/javascript; charset=utf-8',
-        'cache-control': 'no-store, max-age=0',
-      },
+  return new Response(JSON.stringify(config), {
+    headers: {
+      'content-type': 'application/json; charset=utf-8',
+      'cache-control': 'no-store, max-age=0',
+      pragma: 'no-cache',
+      expires: '0',
+      'x-content-type-options': 'nosniff',
     },
-  );
+  });
 };
 
 export default {
@@ -31,7 +27,7 @@ export default {
     const requestUrl = new URL(request.url);
     if (
       request.method === 'GET' &&
-      requestUrl.pathname === '/runtime-config.js'
+      requestUrl.pathname === '/__qishi/runtime-config'
     ) {
       return runtimeConfigResponse(env);
     }
