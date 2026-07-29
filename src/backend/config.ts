@@ -1,3 +1,5 @@
+import { bundledPublicSupabaseConfig } from './publicSupabaseConfig';
+
 const runtimeConfig = globalThis.__QISHI_CONFIG__;
 
 const buildProjectUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
@@ -11,9 +13,14 @@ const runtimePublishableKey = (
   runtimeConfig?.VITE_SUPABASE_ANON_KEY
 )?.trim();
 
-export const supabaseProjectUrl = buildProjectUrl || runtimeProjectUrl;
+export const supabaseProjectUrl =
+  buildProjectUrl ||
+  runtimeProjectUrl ||
+  bundledPublicSupabaseConfig.projectUrl;
 export const supabasePublishableKey =
-  buildPublishableKey || runtimePublishableKey;
+  buildPublishableKey ||
+  runtimePublishableKey ||
+  bundledPublicSupabaseConfig.publishableKey;
 
 export const supabaseConfigured = Boolean(
   supabaseProjectUrl && supabasePublishableKey,
