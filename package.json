@@ -28,6 +28,7 @@
     "@capacitor/local-notifications": "8.2.1",
     "@capacitor/share": "8.0.1",
     "@capacitor/splash-screen": "8.0.2",
+    "@supabase/supabase-js": "^2.110.9",
     "dexie": "^4.4.4",
     "lucide-react": "^1.27.0",
     "react": "^19.2.0",

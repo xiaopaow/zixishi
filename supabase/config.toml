@@ -1,0 +1,6 @@
+project_id = "qishi-local"
+
+[auth.hook.before_user_created]
+enabled = true
+uri = "pg-functions://postgres/public/hook_require_qishi_invite"
+

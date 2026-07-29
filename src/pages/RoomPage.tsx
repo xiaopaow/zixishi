@@ -18,6 +18,7 @@ import { SoundMixer } from '../components/SoundMixer';
 import { useApp } from '../context/AppContext';
 import { getScene, scenes, soundForScene } from '../data/scenes';
 import { ACTIVE_TIMER_CONFLICT_MESSAGE } from '../db';
+import { useScenePresence } from '../hooks/useScenePresence';
 import type { TimerMode } from '../types';
 import { todayKey } from '../utils';
 
@@ -42,6 +43,7 @@ export function RoomPage() {
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState('');
   const selectedScene = getScene(preferences.selectedSceneId);
+  const scenePresence = useScenePresence();
   const todayTasks = useMemo(
     () =>
       tasks
@@ -141,6 +143,7 @@ export function RoomPage() {
                 key={scene.id}
                 scene={scene}
                 selected={selectedScene.id === scene.id}
+                onlineCount={scenePresence.connected ? (scenePresence.counts[scene.id] ?? 0) : null}
                 onSelect={() => void selectScene(scene.id)}
               />
             ))}

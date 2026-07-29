@@ -1091,6 +1091,186 @@ p {
   line-height: 1.7;
 }
 
+.invite-manager {
+  width: 100%;
+  margin-top: 24px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 22px;
+  color: rgba(246, 248, 246, 0.88);
+  background: rgba(7, 22, 24, 0.3);
+  text-align: left;
+}
+
+.invite-manager-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.invite-manager-heading > span {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 12px;
+  color: #efd09c;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.invite-manager-heading small,
+.invite-manager label > span {
+  color: rgba(225, 237, 234, 0.52);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+}
+
+.invite-manager-heading h3 {
+  margin: 2px 0 0;
+  font-family: "STSong", "SimSun", serif;
+  font-size: 17px;
+}
+
+.invite-manager form,
+.invite-manager form > label {
+  display: grid;
+  gap: 8px;
+}
+
+.invite-manager form {
+  gap: 12px;
+}
+
+.invite-code-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 7px;
+}
+
+.invite-code-row code,
+.invite-manager input {
+  min-width: 0;
+  min-height: 39px;
+  padding: 0 11px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 11px;
+  color: rgba(250, 247, 237, 0.9);
+  background: rgba(6, 17, 19, 0.34);
+  font: inherit;
+}
+
+.invite-code-row code {
+  display: flex;
+  align-items: center;
+  color: #f0d09b;
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.invite-code-row button,
+.invite-history button {
+  display: grid;
+  width: 39px;
+  height: 39px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 11px;
+  cursor: pointer;
+  color: rgba(244, 244, 238, 0.72);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.invite-manager-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.invite-manager-fields label {
+  display: grid;
+  gap: 7px;
+}
+
+.invite-create-button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+  color: #173833;
+  background: rgba(245, 239, 224, 0.92);
+  font-weight: 700;
+}
+
+.invite-manager-status {
+  margin: 12px 0 0;
+  color: rgba(239, 214, 171, 0.78);
+  font-size: 9px;
+  line-height: 1.6;
+}
+
+.invite-history {
+  display: grid;
+  gap: 7px;
+  margin-top: 14px;
+}
+
+.invite-history > p {
+  margin: 0;
+  color: rgba(228, 237, 234, 0.42);
+  font-size: 9px;
+}
+
+.invite-history > div {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 9px;
+  padding: 9px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.invite-history > div > span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.invite-history > div > span.active {
+  background: #8bc5ac;
+  box-shadow: 0 0 0 4px rgba(139, 197, 172, 0.1);
+}
+
+.invite-history > div > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.invite-history strong {
+  font-size: 10px;
+}
+
+.invite-history small,
+.invite-history em {
+  color: rgba(230, 238, 236, 0.48);
+  font-size: 8px;
+  font-style: normal;
+}
+
+.invite-history button {
+  width: 30px;
+  height: 30px;
+  color: rgba(239, 181, 165, 0.78);
+}
+
 .membership-preview {
   position: relative;
   display: flex;
@@ -2025,6 +2205,25 @@ p {
   backdrop-filter: blur(15px);
 }
 
+.scene-online {
+  position: absolute;
+  top: 17px;
+  left: 17px;
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.36);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.86);
+  background: rgba(8, 20, 19, 0.46);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+
 .setup-panel {
   position: sticky;
   top: 101px;
@@ -2662,6 +2861,15 @@ input[type="range"]::-webkit-slider-thumb {
   letter-spacing: 0.08em;
 }
 
+.focus-scene-name em {
+  padding-left: 8px;
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(238, 213, 172, 0.82);
+  font-size: 9px;
+  font-style: normal;
+  letter-spacing: 0.03em;
+}
+
 .glass-icon {
   justify-self: end;
   color: white;
@@ -3142,6 +3350,14 @@ input[type="range"]::-webkit-slider-thumb {
 .scene-card.compact .scene-check {
   top: 10px;
   right: 10px;
+}
+
+.scene-card.compact .scene-online {
+  top: 10px;
+  left: 10px;
+  min-height: 24px;
+  padding: 0 8px;
+  font-size: 8px;
 }
 
 .completion-modal {

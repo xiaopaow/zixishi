@@ -1,4 +1,4 @@
-import { Check, Sparkles } from 'lucide-react';
+import { Check, Sparkles, UsersRound } from 'lucide-react';
 import type { Scene } from '../types';
 import { ScenePicture } from './ScenePicture';
 
@@ -7,6 +7,7 @@ interface SceneCardProps {
   selected: boolean;
   onSelect: () => void;
   compact?: boolean;
+  onlineCount?: number | null;
 }
 
 export function SceneCard({
@@ -14,6 +15,7 @@ export function SceneCard({
   selected,
   onSelect,
   compact = false,
+  onlineCount = null,
 }: SceneCardProps) {
   return (
     <button
@@ -29,6 +31,12 @@ export function SceneCard({
         <strong>{scene.shortName}</strong>
         {!compact && <em>{scene.description}</em>}
       </span>
+      {onlineCount !== null && (
+        <span className="scene-online">
+          <UsersRound size={12} />
+          {onlineCount} 人专注中
+        </span>
+      )}
       {selected && <span className="scene-check"><Check size={16} /></span>}
     </button>
   );

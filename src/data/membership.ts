@@ -3,8 +3,6 @@ import { ChartNoAxesCombined, Cloud, Palette } from 'lucide-react';
 
 export type MembershipTier = 'free' | 'plus';
 
-export const PREVIEW_INVITE_CODE = 'QISHI-BETA';
-
 export interface MembershipBenefit {
   title: string;
   description: string;

@@ -15,18 +15,19 @@ import {
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import {
+  registerWithInvite,
+  sendPasswordReset,
+  signInWithPassword,
+  signOutSupabaseAccount,
+  supabaseConfigured,
+} from '../backend/supabase';
+import { InviteManager } from '../components/InviteManager';
 import { ScenePicture } from '../components/ScenePicture';
 import { getScene } from '../data/scenes';
-import {
-  membershipPlans,
-  PREVIEW_INVITE_CODE,
-} from '../data/membership';
-import {
-  accountNameFromEmail,
-  clearPreviewAccountSession,
-  savePreviewAccountSession,
-} from '../data/localAccount';
-import { usePreviewAccountSession } from '../hooks/usePreviewAccountSession';
+import { membershipPlans } from '../data/membership';
+import { clearPreviewAccountSession } from '../data/localAccount';
+import { useAccountSession } from '../hooks/useAccountSession';
 
 type AccountMode = 'login' | 'register';
 
@@ -34,7 +35,9 @@ export function AccountPage() {
   const [mode, setMode] = useState<AccountMode>('login');
   const [showPassword, setShowPassword] = useState(false);
   const [status, setStatus] = useState('');
-  const session = usePreviewAccountSession();
+  const [email, setEmail] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const session = useAccountSession();
   const navigate = useNavigate();
   const plusPlan = useMemo(
     () => membershipPlans.find((plan) => plan.id === 'plus')!,
@@ -42,48 +45,77 @@ export function AccountPage() {
   );
   const scene = getScene('snow-tea');
 
-  const previewAccountFlow = (event: React.FormEvent<HTMLFormElement>) => {
+  const accountFlow = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const email = String(form.get('email') ?? '').trim();
+    const submittedEmail = String(form.get('email') ?? '').trim();
     const password = String(form.get('password') ?? '');
     const submittedName = String(form.get('name') ?? '').trim();
     const submittedInviteCode = String(form.get('inviteCode') ?? '').trim();
 
-    if (!email || !password) {
+    if (!submittedEmail || !password) {
       setStatus('请先填写邮箱和密码。');
       return;
     }
     if (
       mode === 'register' &&
-      !/^[A-Za-z0-9-]{6,16}$/.test(submittedInviteCode)
+      !/^[A-Za-z0-9-]{6,24}$/.test(submittedInviteCode)
     ) {
-      setStatus('邀请码需为 6～16 位字母、数字或连字符；有效性将在服务端校验。');
+      setStatus('邀请码须为 6～24 位字母、数字或连字符。');
       return;
     }
-    if (
-      mode === 'register' &&
-      submittedInviteCode.toUpperCase() !== PREVIEW_INVITE_CODE
-    ) {
-      setStatus('邀请码无效，请联系栖时主理人获取内测资格。');
+    if (!supabaseConfigured) {
+      setStatus('账号服务尚未连接。创建 Supabase 项目后即可启用真实登录与邀请码核验。');
       return;
     }
-    const nextSession = {
-      email,
-      name: submittedName || accountNameFromEmail(email),
-      tier: 'free' as const,
-      signedInAt: new Date().toISOString(),
-    };
-    const persistent = mode === 'register' || form.get('remember') === 'on';
-    const storageMode = savePreviewAccountSession(nextSession, persistent);
-    if (!storageMode) {
-      setStatus('浏览器阻止了本机存储，请允许站点数据后再继续登录。');
+
+    setSubmitting(true);
+    setStatus('');
+    try {
+      if (mode === 'register') {
+        const result = await registerWithInvite({
+          email: submittedEmail,
+          password,
+          name: submittedName || submittedEmail.split('@')[0] || '栖友',
+          inviteCode: submittedInviteCode,
+        });
+        if (result.emailConfirmationRequired) {
+          setStatus('账号已创建，请先打开验证邮件；验证后即可保持登录。');
+          return;
+        }
+      } else {
+        await signInWithPassword(submittedEmail, password);
+      }
+      navigate('/?welcome=1', { replace: true });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '';
+      setStatus(
+        message.includes('Invalid login credentials')
+          ? '邮箱或密码不正确。'
+          : message.includes('Email not confirmed')
+            ? '请先完成邮箱验证。'
+            : message || '账号服务暂时不可用，请稍后重试。',
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const requestPasswordReset = async () => {
+    if (!email.trim()) {
+      setStatus('先填写注册邮箱，再发送密码重置邮件。');
       return;
     }
-    navigate(
-      `/?welcome=1${persistent && storageMode === 'session' ? '&session=temporary' : ''}`,
-      { replace: true },
-    );
+    if (!supabaseConfigured) {
+      setStatus('账号服务尚未连接，暂时无法发送密码重置邮件。');
+      return;
+    }
+    try {
+      await sendPasswordReset(email.trim());
+      setStatus('密码重置邮件已发送，请检查收件箱。');
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : '发送失败，请稍后重试。');
+    }
   };
 
   return (
@@ -122,8 +154,9 @@ export function AccountPage() {
           <span className="account-kicker"><Sparkles size={14} /> QISHI ACCOUNT</span>
           <h1>让每一段认真，<br />在不同设备上继续。</h1>
           <p>
-            账号与会员服务正在准备中。现在，你仍可完整使用本机任务、
-            计时、声音与轨迹；未来登录后再选择是否同步。
+            {supabaseConfigured
+              ? '安全账号服务已连接。登录状态会自动续期，本机任务、计时、声音与轨迹仍默认保存在设备中。'
+              : '账号服务正在等待 Supabase 项目配置；本机任务、计时、声音与轨迹仍可完整使用。'}
           </p>
           <div className="account-trust-row">
             <span><ShieldCheck size={15} /> 默认本地优先</span>
@@ -138,12 +171,14 @@ export function AccountPage() {
                 <span className="account-session-avatar" aria-hidden="true">
                   {session.name.slice(0, 1)}
                 </span>
-                <small>本地预览账号 · 已保持登录</small>
+                <small>
+                  {supabaseConfigured ? '栖时安全账号 · 已保持登录' : '本地预览账号 · 已保持登录'}
+                </small>
                 <h2 id="account-title">{session.name}，欢迎回来</h2>
                 <p>{session.email}</p>
                 <div className="account-session-badges">
-                  <span><ShieldCheck size={14} /> 本机安全会话</span>
-                  <span><Sparkles size={14} /> 栖时 Free</span>
+                  <span><ShieldCheck size={14} /> 自动续期会话</span>
+                  <span><Sparkles size={14} /> 栖时 {session.tier === 'plus' ? 'Plus' : 'Free'}</span>
                 </div>
                 <button
                   type="button"
@@ -156,15 +191,30 @@ export function AccountPage() {
                   type="button"
                   className="account-signout"
                   onClick={() => {
-                    clearPreviewAccountSession();
-                    setStatus('已退出本地预览账号。');
+                    void (async () => {
+                      try {
+                        if (supabaseConfigured) {
+                          await signOutSupabaseAccount();
+                        } else {
+                          clearPreviewAccountSession();
+                        }
+                        setStatus('已安全退出登录。');
+                      } catch (error) {
+                        setStatus(
+                          error instanceof Error
+                            ? error.message
+                            : '退出失败，请稍后重试。',
+                        );
+                      }
+                    })();
                   }}
                 >
                   <LogOut size={15} /> 退出登录
                 </button>
                 <p className="account-form-note">
-                  仅保存昵称、邮箱和登录状态，不保存密码；清理浏览器数据后会自动退出。
+                  密码由账号服务安全处理，客户端只保存可自动续期的会话，不会保存明文密码。
                 </p>
+                {session.role === 'admin' && <InviteManager />}
               </div>
             ) : (
               <>
@@ -196,14 +246,16 @@ export function AccountPage() {
             <div className="account-title">
               <span><UserRound size={18} /></span>
               <div>
-                <small>本地预览 · 尚未连接账号服务</small>
+                <small>
+                  {supabaseConfigured ? '安全账号服务 · 已连接' : '账号服务 · 等待项目配置'}
+                </small>
                 <h2 id="account-title">
                   {mode === 'login' ? '欢迎回来' : '创建你的栖时账号'}
                 </h2>
               </div>
             </div>
 
-            <form className="account-form" onSubmit={previewAccountFlow}>
+            <form className="account-form" onSubmit={accountFlow}>
               {mode === 'register' && (
                 <label>
                   <span>你的称呼</span>
@@ -225,6 +277,8 @@ export function AccountPage() {
                   <input
                     name="email"
                     type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
                     autoComplete="email"
                     placeholder="name@example.com"
                     required
@@ -262,9 +316,9 @@ export function AccountPage() {
                     <input
                       name="inviteCode"
                       autoComplete="one-time-code"
-                      placeholder="输入 6～16 位邀请码"
+                      placeholder="输入 6～24 位邀请码"
                       minLength={6}
-                      maxLength={16}
+                      maxLength={24}
                       required
                     />
                   </div>
@@ -284,15 +338,30 @@ export function AccountPage() {
                   />
                   <span>{mode === 'login' ? '保持登录' : '同意未来的服务与隐私条款'}</span>
                 </label>
-                {mode === 'login' && <button type="button">忘记密码</button>}
+                {mode === 'login' && (
+                  <button type="button" onClick={() => void requestPasswordReset()}>
+                    忘记密码
+                  </button>
+                )}
               </div>
 
-              <button type="submit" className="account-submit">
-                {mode === 'login' ? '继续登录' : '创建账号'}
+              <button
+                type="submit"
+                className="account-submit"
+                disabled={submitting}
+              >
+                {submitting
+                  ? '正在安全连接…'
+                  : mode === 'login'
+                    ? '继续登录'
+                    : '创建账号'}
                 <ArrowRight size={17} />
               </button>
               <p className="account-form-note" aria-live="polite">
-                {status || '演示阶段不会创建远程账号，也不会保存你输入的密码。'}
+                {status ||
+                  (supabaseConfigured
+                    ? '邀请码只在服务端校验和核销，用户无法自行生成。'
+                    : '尚未配置 Supabase；当前不会发送账号或密码。')}
               </p>
             </form>
               </>

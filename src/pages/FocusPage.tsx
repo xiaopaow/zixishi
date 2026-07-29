@@ -31,6 +31,7 @@ import {
   isNativeApp,
   NATIVE_FOCUS_BACK_EVENT,
 } from '../native/mobile';
+import { useScenePresence } from '../hooks/useScenePresence';
 import type { FocusSession } from '../types';
 import { elapsedSeconds, formatClock, formatMinutes } from '../utils';
 
@@ -74,6 +75,9 @@ export function FocusPage() {
   const wakeRetry = useRef<number | null>(null);
 
   const scene = getScene(activeTimer?.sceneId ?? preferences.selectedSceneId);
+  const scenePresence = useScenePresence(
+    activeTimer?.status === 'running' ? scene.id : undefined,
+  );
   const elapsed = activeTimer ? elapsedSeconds(activeTimer, now) : 0;
   const displaySeconds =
     activeTimer?.mode === 'countdown'
@@ -420,6 +424,9 @@ export function FocusPage() {
           <div className="focus-scene-name">
             <span className="breathing-dot" />
             {scene.name}
+            {scenePresence.connected && (
+              <em>{scenePresence.counts[scene.id] ?? 0} 人同频</em>
+            )}
           </div>
           <button
             type="button"
@@ -534,6 +541,7 @@ export function FocusPage() {
                 key={item.id}
                 scene={item}
                 selected={scene.id === item.id}
+                onlineCount={scenePresence.connected ? (scenePresence.counts[item.id] ?? 0) : null}
                 onSelect={() => void selectScene(item.id)}
               />
             ))}
