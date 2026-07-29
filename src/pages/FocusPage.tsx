@@ -97,7 +97,10 @@ export function FocusPage() {
   }, [soundOpen, scenesOpen, endOpen, activeTimer?.status]);
 
   useEffect(() => {
-    const interval = window.setInterval(() => setNow(Date.now()), 250);
+    const interval = window.setInterval(
+      () => setNow(Date.now()),
+      isNativeApp ? 1000 : 250,
+    );
     return () => window.clearInterval(interval);
   }, []);
 

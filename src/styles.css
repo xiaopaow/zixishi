@@ -4595,6 +4595,104 @@ input[type="range"]::-webkit-slider-thumb {
   }
 }
 
+/*
+ * Android WebView has a much smaller blur-compositing budget than desktop
+ * browsers. Keep the liquid-glass lighting and borders, but use opaque,
+ * pre-composed surfaces in the native shell so the scene and particles do not
+ * trigger a full-screen repaint behind every card.
+ */
+html.native-app .glass-card,
+html.native-app .liquid-glass,
+html.native-app .topbar,
+html.native-app .mobile-nav,
+html.native-app .modal-card,
+html.native-app .account-trust-chip,
+html.native-app .account-brand-mark,
+html.native-app .account-invite-badge,
+html.native-app .account-card,
+html.native-app .membership-preview,
+html.native-app .task-form,
+html.native-app .segmented button,
+html.native-app .time-presets button,
+html.native-app .away-pause-card,
+html.native-app .focus-header,
+html.native-app .timer-display,
+html.native-app .focus-controls,
+html.native-app .focus-modal,
+html.native-app .stat-card {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+html.native-app .glass-card,
+html.native-app .liquid-glass,
+html.native-app .topbar,
+html.native-app .mobile-nav,
+html.native-app .modal-card {
+  background:
+    radial-gradient(
+      circle at var(--glass-x) var(--glass-y),
+      rgba(255, 255, 255, 0.32),
+      transparent 36%
+    ),
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.74),
+      rgba(239, 236, 225, 0.82)
+    );
+}
+
+html.native-app .focus-header,
+html.native-app .timer-display,
+html.native-app .focus-controls,
+html.native-app .restore-sound,
+html.native-app .away-pause-card {
+  background:
+    radial-gradient(circle at 22% 0%, rgba(255, 255, 255, 0.13), transparent 42%),
+    linear-gradient(145deg, rgba(37, 52, 50, 0.88), rgba(10, 22, 21, 0.9));
+}
+
+html.native-app .shell-backdrop {
+  inset: -2%;
+  filter: saturate(0.76);
+  transform: scale(1.02);
+}
+
+html.native-app .shell-backdrop::after {
+  display: none;
+}
+
+html.native-app .scene-poster {
+  filter: blur(4px) saturate(0.8);
+  transform: scale(1.025);
+}
+
+html.native-app .scene-parallax-glow,
+html.native-app .living-glow {
+  mix-blend-mode: normal;
+}
+
+html.native-app .motion-enabled .scene-parallax-glow {
+  animation-duration: 14s;
+}
+
+html.native-app .motion-enabled .scene-foreground {
+  animation-duration: 12s;
+}
+
+html.native-app .steam-emitter i {
+  filter: blur(3px);
+}
+
+html.native-app .glass-card::before,
+html.native-app .liquid-glass::before,
+html.native-app .topbar::before,
+html.native-app .mobile-nav::before,
+html.native-app .modal-card::before {
+  mix-blend-mode: normal;
+  opacity: 0.48;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

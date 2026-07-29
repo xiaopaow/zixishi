@@ -7,7 +7,10 @@ import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { AppProvider } from './context/AppContext';
 import './styles.css';
 
-if (!Capacitor.isNativePlatform()) {
+const nativeApp = Capacitor.isNativePlatform();
+document.documentElement.classList.toggle('native-app', nativeApp);
+
+if (!nativeApp) {
   registerSW({ immediate: true });
 }
 

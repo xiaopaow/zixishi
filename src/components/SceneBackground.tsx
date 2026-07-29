@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { isNativeApp } from '../native/mobile';
 import type { Quality, Scene } from '../types';
 import { AtmosphereCanvas } from './AtmosphereCanvas';
 import { LivingDetails } from './LivingDetails';
@@ -21,6 +22,13 @@ export function SceneBackground({
 }: SceneBackgroundProps) {
   const [loadedSceneId, setLoadedSceneId] = useState<string | null>(null);
   const [systemReducedMotion, setSystemReducedMotion] = useState(false);
+  const [constrainedDevice, setConstrainedDevice] = useState(
+    () =>
+      isNativeApp ||
+      window.matchMedia(
+        '(max-width: 820px), (pointer: coarse)',
+      ).matches,
+  );
   const backgroundRef = useRef<HTMLDivElement>(null);
   const parallaxFrame = useRef(0);
   const pendingParallax = useRef({ x: 0, y: 0 });
@@ -34,7 +42,19 @@ export function SceneBackground({
     return () => media.removeEventListener?.('change', update);
   }, []);
 
+  useEffect(() => {
+    if (isNativeApp) return;
+    const media = window.matchMedia(
+      '(max-width: 820px), (pointer: coarse)',
+    );
+    const update = () => setConstrainedDevice(media.matches);
+    update();
+    media.addEventListener?.('change', update);
+    return () => media.removeEventListener?.('change', update);
+  }, []);
+
   const effectsEnabled = motionEnabled && !systemReducedMotion;
+  const renderQuality = constrainedDevice ? 'low' : quality;
 
   const scheduleParallax = (x: number, y: number) => {
     pendingParallax.current = { x, y };
@@ -97,6 +117,7 @@ export function SceneBackground({
         className={`scene-image scene-full ${loaded ? 'is-loaded' : ''}`}
         scene={scene}
         variant={quality === 'high' ? 'full' : 'poster'}
+        sizes={constrainedDevice && quality === 'high' ? '420px' : undefined}
         fallbackToPoster
         alt={scene.name}
         onLoad={() => setLoadedSceneId(scene.id)}
@@ -107,11 +128,14 @@ export function SceneBackground({
         className={`scene-foreground foreground-${scene.effect}`}
         aria-hidden="true"
       />
-      {effectsEnabled && <LivingDetails scene={scene} quality={quality} />}
+      {effectsEnabled && (
+        <LivingDetails scene={scene} quality={renderQuality} />
+      )}
       <AtmosphereCanvas
         effect={scene.effect}
         enabled={effectsEnabled}
-        quality={quality}
+        quality={renderQuality}
+        performanceMode={constrainedDevice}
       />
       <div className="scene-shade" aria-hidden="true" />
       {children}

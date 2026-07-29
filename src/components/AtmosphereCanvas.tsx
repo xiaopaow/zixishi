@@ -22,12 +22,14 @@ interface AtmosphereCanvasProps {
   effect: SceneEffect;
   enabled: boolean;
   quality: Quality;
+  performanceMode?: boolean;
 }
 
 export function AtmosphereCanvas({
   effect,
   enabled,
   quality,
+  performanceMode = false,
 }: AtmosphereCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -41,7 +43,7 @@ export function AtmosphereCanvas({
     let height = 0;
     let particles: Particle[] = [];
     let twinkles: Twinkle[] = [];
-    const count = quality === 'high' ? 92 : 42;
+    const count = performanceMode ? 30 : quality === 'high' ? 92 : 42;
 
     const seedParticles = () => {
       particles = Array.from({ length: count }, () => ({
@@ -72,7 +74,13 @@ export function AtmosphereCanvas({
         phase: Math.random() * Math.PI * 2,
       }));
       twinkles = Array.from(
-        { length: quality === 'high' ? 26 : 12 },
+        {
+          length: performanceMode
+            ? 8
+            : quality === 'high'
+              ? 26
+              : 12,
+        },
         () => ({
           x: width * (0.43 + Math.random() * 0.53),
           y: height * (0.38 + Math.random() * 0.36),
@@ -84,7 +92,10 @@ export function AtmosphereCanvas({
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
-      const ratio = Math.min(window.devicePixelRatio || 1, quality === 'high' ? 1.5 : 1);
+      const ratio = Math.min(
+        window.devicePixelRatio || 1,
+        performanceMode ? 1 : quality === 'high' ? 1.5 : 1,
+      );
       width = rect.width;
       height = rect.height;
       canvas.width = Math.round(width * ratio);
@@ -249,7 +260,11 @@ export function AtmosphereCanvas({
 
     let animationFrame = 0;
     let lastPaintAt = 0;
-    const frameInterval = quality === 'low' ? 1000 / 30 : 0;
+    const frameInterval = performanceMode
+      ? 1000 / 24
+      : quality === 'low'
+        ? 1000 / 30
+        : 0;
 
     function scheduleFrame() {
       if (!animationFrame && document.visibilityState === 'visible') {
@@ -299,7 +314,7 @@ export function AtmosphereCanvas({
       document.removeEventListener('visibilitychange', handleVisibility);
       window.cancelAnimationFrame(animationFrame);
     };
-  }, [effect, enabled, quality]);
+  }, [effect, enabled, performanceMode, quality]);
 
   if (!enabled) return null;
   return <canvas ref={canvasRef} className="atmosphere-canvas" aria-hidden="true" />;
