@@ -54,6 +54,7 @@ export function SceneBackground({
   }, []);
 
   const effectsEnabled = motionEnabled && !systemReducedMotion;
+  const parallaxEnabled = effectsEnabled && !constrainedDevice;
   const renderQuality = constrainedDevice ? 'low' : quality;
 
   const scheduleParallax = (x: number, y: number) => {
@@ -71,14 +72,14 @@ export function SceneBackground({
   };
 
   useEffect(() => {
-    if (!effectsEnabled) scheduleParallax(0, 0);
+    if (!parallaxEnabled) scheduleParallax(0, 0);
     return () => {
       if (parallaxFrame.current) {
         window.cancelAnimationFrame(parallaxFrame.current);
         parallaxFrame.current = 0;
       }
     };
-  }, [effectsEnabled]);
+  }, [parallaxEnabled]);
 
   const style = {
     '--scene-overlay': dim ? scene.palette.overlay : 'rgba(0,0,0,.08)',
@@ -95,7 +96,7 @@ export function SceneBackground({
       data-scene={scene.id}
       style={style}
       onPointerMove={(event) => {
-        if (!effectsEnabled) {
+        if (!parallaxEnabled) {
           return;
         }
         const rect = event.currentTarget.getBoundingClientRect();
@@ -104,7 +105,9 @@ export function SceneBackground({
           ((event.clientY - rect.top) / rect.height - 0.5) * -5,
         );
       }}
-      onPointerLeave={() => scheduleParallax(0, 0)}
+      onPointerLeave={() => {
+        if (parallaxEnabled) scheduleParallax(0, 0);
+      }}
     >
       <ScenePicture
         className="scene-image scene-poster"

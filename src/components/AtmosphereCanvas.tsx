@@ -43,7 +43,26 @@ export function AtmosphereCanvas({
     let height = 0;
     let particles: Particle[] = [];
     let twinkles: Twinkle[] = [];
-    const count = performanceMode ? 30 : quality === 'high' ? 92 : 42;
+    const count = performanceMode ? 20 : quality === 'high' ? 92 : 42;
+    let mistSprite: HTMLCanvasElement | null = null;
+
+    const createMistSprite = () => {
+      const sprite = document.createElement('canvas');
+      sprite.width = 128;
+      sprite.height = 128;
+      const spriteContext = sprite.getContext('2d');
+      if (!spriteContext) return null;
+      const gradient = spriteContext.createRadialGradient(64, 64, 0, 64, 64, 64);
+      gradient.addColorStop(0, 'rgba(229,240,225,.52)');
+      gradient.addColorStop(1, 'rgba(229,240,225,0)');
+      spriteContext.fillStyle = gradient;
+      spriteContext.fillRect(0, 0, 128, 128);
+      return sprite;
+    };
+
+    if (performanceMode && effect === 'mist') {
+      mistSprite = createMistSprite();
+    }
 
     const seedParticles = () => {
       particles = Array.from({ length: count }, () => ({
@@ -76,7 +95,7 @@ export function AtmosphereCanvas({
       twinkles = Array.from(
         {
           length: performanceMode
-            ? 8
+            ? 6
             : quality === 'high'
               ? 26
               : 12,
@@ -94,7 +113,7 @@ export function AtmosphereCanvas({
       const rect = canvas.getBoundingClientRect();
       const ratio = Math.min(
         window.devicePixelRatio || 1,
-        performanceMode ? 1 : quality === 'high' ? 1.5 : 1,
+        performanceMode ? 0.85 : quality === 'high' ? 1.5 : 1,
       );
       width = rect.width;
       height = rect.height;
@@ -127,24 +146,36 @@ export function AtmosphereCanvas({
     const drawMist = () => {
       context.globalCompositeOperation = 'screen';
       particles.forEach((particle, index) => {
-        const gradient = context.createRadialGradient(
-          particle.x,
-          particle.y,
-          0,
-          particle.x,
-          particle.y,
-          particle.size,
-        );
-        gradient.addColorStop(0, `rgba(229,240,225,${particle.alpha * 0.7})`);
-        gradient.addColorStop(1, 'rgba(229,240,225,0)');
-        context.fillStyle = gradient;
-        context.beginPath();
-        context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-        context.fill();
+        if (mistSprite) {
+          context.globalAlpha = particle.alpha * 0.9;
+          context.drawImage(
+            mistSprite,
+            particle.x - particle.size,
+            particle.y - particle.size,
+            particle.size * 2,
+            particle.size * 2,
+          );
+        } else {
+          const gradient = context.createRadialGradient(
+            particle.x,
+            particle.y,
+            0,
+            particle.x,
+            particle.y,
+            particle.size,
+          );
+          gradient.addColorStop(0, `rgba(229,240,225,${particle.alpha * 0.7})`);
+          gradient.addColorStop(1, 'rgba(229,240,225,0)');
+          context.fillStyle = gradient;
+          context.beginPath();
+          context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+          context.fill();
+        }
         particle.x += particle.speed + Math.sin(frame / 160 + index) * 0.08;
         particle.y += particle.drift * 0.12;
         if (particle.x > width + particle.size) particle.x = -particle.size;
       });
+      context.globalAlpha = 1;
       context.globalCompositeOperation = 'source-over';
     };
 
@@ -261,7 +292,7 @@ export function AtmosphereCanvas({
     let animationFrame = 0;
     let lastPaintAt = 0;
     const frameInterval = performanceMode
-      ? 1000 / 24
+      ? 1000 / 20
       : quality === 'low'
         ? 1000 / 30
         : 0;
