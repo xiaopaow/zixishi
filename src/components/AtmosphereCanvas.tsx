@@ -43,7 +43,7 @@ export function AtmosphereCanvas({
     let height = 0;
     let particles: Particle[] = [];
     let twinkles: Twinkle[] = [];
-    const count = performanceMode ? 20 : quality === 'high' ? 92 : 42;
+    const count = performanceMode ? 16 : quality === 'high' ? 48 : 26;
     let mistSprite: HTMLCanvasElement | null = null;
 
     const createMistSprite = () => {
@@ -95,10 +95,10 @@ export function AtmosphereCanvas({
       twinkles = Array.from(
         {
           length: performanceMode
-            ? 6
+            ? 5
             : quality === 'high'
-              ? 26
-              : 12,
+              ? 14
+              : 8,
         },
         () => ({
           x: width * (0.43 + Math.random() * 0.53),
@@ -113,7 +113,7 @@ export function AtmosphereCanvas({
       const rect = canvas.getBoundingClientRect();
       const ratio = Math.min(
         window.devicePixelRatio || 1,
-        performanceMode ? 0.85 : quality === 'high' ? 1.5 : 1,
+        performanceMode ? 0.75 : quality === 'high' ? 1.15 : 0.9,
       );
       width = rect.width;
       height = rect.height;
@@ -294,8 +294,8 @@ export function AtmosphereCanvas({
     const frameInterval = performanceMode
       ? 1000 / 20
       : quality === 'low'
-        ? 1000 / 30
-        : 0;
+        ? 1000 / 24
+        : 1000 / 30;
 
     function scheduleFrame() {
       if (!animationFrame && document.visibilityState === 'visible') {

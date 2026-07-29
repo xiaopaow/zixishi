@@ -50,6 +50,7 @@
 html {
   min-width: 320px;
   min-height: 100%;
+  scrollbar-gutter: stable;
   background: #e8e2d7;
 }
 
@@ -303,8 +304,8 @@ p {
     inset 1px 0 0 rgba(255, 255, 255, 0.28),
     0 1px 0 rgba(35, 55, 48, 0.05),
     0 22px 58px rgba(26, 48, 41, 0.12);
-  -webkit-backdrop-filter: blur(34px) saturate(175%) contrast(106%);
-  backdrop-filter: blur(34px) saturate(175%) contrast(106%);
+  -webkit-backdrop-filter: blur(16px) saturate(145%) contrast(103%);
+  backdrop-filter: blur(16px) saturate(145%) contrast(103%);
 }
 
 .glass-card::before,
@@ -362,14 +363,14 @@ p {
 .shell-backdrop {
   position: fixed;
   z-index: 0;
-  inset: -8%;
+  inset: -3%;
   background-image:
     linear-gradient(rgba(238, 234, 222, 0.76), rgba(232, 227, 215, 0.9)),
     var(--shell-wallpaper);
   background-position: center;
   background-size: cover;
-  filter: blur(38px) saturate(0.74);
-  transform: scale(1.06);
+  filter: blur(20px) saturate(0.74);
+  transform: scale(1.025);
 }
 
 .shell-backdrop::after {
@@ -550,20 +551,22 @@ p {
   position: relative;
   min-height: 100vh;
   min-height: 100dvh;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: none;
   color: rgba(250, 252, 250, 0.94);
   background: #102127;
 }
 
 .account-backdrop {
-  position: absolute;
-  inset: -2%;
-  width: 104%;
-  height: 104%;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   object-position: 70% center;
   filter: saturate(0.82) contrast(1.04);
-  animation: account-slow-drift 18s ease-in-out infinite alternate;
+  transform: translateZ(0) scale(1.002);
 }
 
 .account-shade {
@@ -576,21 +579,15 @@ p {
 }
 
 .account-shade::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.86' numOctaves='3' stitchTiles='stitchTiles'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.07'/%3E%3C/svg%3E");
-  opacity: 0.22;
-  mix-blend-mode: soft-light;
+  display: none;
 }
 
 .account-orb {
   position: absolute;
   border-radius: 50%;
   pointer-events: none;
-  filter: blur(4px);
-  mix-blend-mode: screen;
-  animation: account-orb-float 10s ease-in-out infinite alternate;
+  filter: blur(18px);
+  opacity: 0.42;
 }
 
 .account-orb-one {
@@ -607,19 +604,6 @@ p {
   width: 320px;
   height: 320px;
   background: radial-gradient(circle, rgba(209, 164, 106, 0.14), transparent 68%);
-  animation-delay: -4s;
-}
-
-@keyframes account-slow-drift {
-  to {
-    transform: scale(1.025) translate3d(-0.5%, -0.35%, 0);
-  }
-}
-
-@keyframes account-orb-float {
-  to {
-    transform: translate3d(-18px, 24px, 0) scale(1.08);
-  }
 }
 
 .account-header {
@@ -699,13 +683,14 @@ p {
   width: min(1240px, calc(100% - 56px));
   min-height: calc(100dvh - 90px);
   grid-template-columns: minmax(0, 1fr) minmax(430px, 510px);
-  align-items: center;
+  align-items: start;
   gap: clamp(48px, 8vw, 128px);
   margin: 0 auto;
-  padding: 24px 0 70px;
+  padding: clamp(28px, 5vh, 62px) 0 70px;
 }
 
 .account-story {
+  align-self: center;
   max-width: 590px;
   text-shadow: 0 3px 28px rgba(2, 12, 16, 0.35);
 }
@@ -759,6 +744,7 @@ p {
 
 .account-glass-shell {
   position: relative;
+  min-height: 708px;
   padding: 1px;
   border-radius: 36px;
   background:
@@ -770,19 +756,20 @@ p {
 
 .account-card {
   position: relative;
+  min-height: 625px;
   overflow: hidden;
   padding: 32px;
   border-radius: 35px 35px 29px 29px;
   color: rgba(247, 251, 250, 0.94);
   background:
-    radial-gradient(circle at var(--glass-x) var(--glass-y), rgba(255, 255, 255, 0.19), transparent 30%),
+    radial-gradient(circle at 24% 10%, rgba(255, 255, 255, 0.2), transparent 31%),
     linear-gradient(150deg, rgba(255, 255, 255, 0.18), rgba(151, 181, 188, 0.08) 58%, rgba(16, 31, 37, 0.36)),
-    rgba(16, 30, 37, 0.48);
+    rgba(24, 43, 50, 0.88);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.45),
     inset 1px 0 rgba(255, 255, 255, 0.15);
-  -webkit-backdrop-filter: blur(34px) saturate(170%) contrast(104%);
-  backdrop-filter: blur(34px) saturate(170%) contrast(104%);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 .account-card::after {
@@ -1274,20 +1261,21 @@ p {
 
 .membership-preview {
   position: relative;
-  display: flex;
+  display: grid;
   align-items: center;
-  gap: 14px;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px 14px;
   margin: -8px 14px 14px;
-  padding: 19px 18px 15px;
+  padding: 20px 18px 14px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-top: 0;
   border-radius: 0 0 24px 24px;
   color: rgba(244, 248, 247, 0.86);
   background:
     radial-gradient(circle at 12% 30%, rgba(225, 184, 113, 0.12), transparent 32%),
-    rgba(7, 19, 24, 0.54);
-  -webkit-backdrop-filter: blur(28px) saturate(150%);
-  backdrop-filter: blur(28px) saturate(150%);
+    rgba(12, 29, 34, 0.94);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 .membership-preview > div:first-child {
@@ -1342,14 +1330,14 @@ p {
 }
 
 .membership-preview > p {
-  position: absolute;
-  right: 18px;
-  bottom: -1px;
   display: flex;
+  grid-column: 1 / -1;
   align-items: center;
+  justify-content: flex-end;
   gap: 4px;
+  margin: 0;
   color: rgba(229, 238, 236, 0.38);
-  font-size: 6px;
+  font-size: 7px;
 }
 
 .mobile-nav {
@@ -1770,8 +1758,8 @@ p {
   box-shadow:
     inset 0 1px rgba(255, 255, 255, 0.76),
     0 8px 22px rgba(28, 50, 43, 0.05);
-  -webkit-backdrop-filter: blur(18px) saturate(160%);
-  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 .task-form input {
@@ -2823,7 +2811,8 @@ input[type="range"]::-webkit-slider-thumb {
   box-shadow:
     inset 0 1px rgba(255, 255, 255, 0.28),
     0 18px 48px rgba(0, 0, 0, 0.16);
-  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(125%);
+  backdrop-filter: blur(12px) saturate(125%);
   transform: translateX(-50%);
   transition: opacity 350ms ease, transform 350ms ease;
 }
@@ -2954,8 +2943,8 @@ input[type="range"]::-webkit-slider-thumb {
   box-shadow:
     inset 0 1px rgba(255, 255, 255, 0.25),
     0 22px 64px rgba(0, 0, 0, 0.22);
-  -webkit-backdrop-filter: blur(28px) saturate(145%);
-  backdrop-filter: blur(28px) saturate(145%);
+  -webkit-backdrop-filter: blur(12px) saturate(125%);
+  backdrop-filter: blur(12px) saturate(125%);
   animation: away-card-enter 320ms ease both;
 }
 
@@ -3040,7 +3029,8 @@ input[type="range"]::-webkit-slider-thumb {
     inset 0 1px rgba(255, 255, 255, 0.31),
     inset 0 -1px rgba(255, 255, 255, 0.06),
     0 28px 90px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(25px) saturate(135%) brightness(0.94);
+  -webkit-backdrop-filter: blur(12px) saturate(120%) brightness(0.96);
+  backdrop-filter: blur(12px) saturate(120%) brightness(0.96);
   transition:
     width 430ms cubic-bezier(0.2, 0.8, 0.2, 1),
     min-height 430ms cubic-bezier(0.2, 0.8, 0.2, 1),
@@ -3181,7 +3171,8 @@ input[type="range"]::-webkit-slider-thumb {
   box-shadow:
     inset 0 1px rgba(255, 255, 255, 0.28),
     0 24px 70px rgba(0, 0, 0, 0.22);
-  backdrop-filter: blur(28px) saturate(155%);
+  -webkit-backdrop-filter: blur(12px) saturate(130%);
+  backdrop-filter: blur(12px) saturate(130%);
   transform: translateX(-50%);
   transition: opacity 350ms ease, transform 350ms ease;
 }
@@ -3241,7 +3232,8 @@ input[type="range"]::-webkit-slider-thumb {
   place-items: center;
   padding: 20px;
   background: rgba(8, 18, 18, 0.3);
-  backdrop-filter: blur(11px) saturate(90%);
+  -webkit-backdrop-filter: blur(6px) saturate(90%);
+  backdrop-filter: blur(6px) saturate(90%);
   animation: modal-in 180ms ease both;
 }
 
@@ -4343,16 +4335,14 @@ input[type="range"]::-webkit-slider-thumb {
 
   .membership-preview {
     align-items: flex-start;
-    flex-wrap: wrap;
+    grid-template-columns: 1fr;
     margin-right: 8px;
     margin-left: 8px;
     padding-bottom: 23px;
   }
 
   .membership-preview > p {
-    right: auto;
-    bottom: 2px;
-    left: 18px;
+    justify-content: flex-start;
   }
 
   .page {

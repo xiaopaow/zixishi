@@ -225,26 +225,6 @@ function AppRoutes() {
     return () => window.cancelAnimationFrame(frame);
   }, [location.pathname]);
 
-  useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    let frame = 0;
-    const updateGlassLight = (event: PointerEvent) => {
-      if (frame) return;
-      frame = window.requestAnimationFrame(() => {
-        const x = `${(event.clientX / window.innerWidth) * 100}%`;
-        const y = `${(event.clientY / window.innerHeight) * 100}%`;
-        document.documentElement.style.setProperty('--glass-x', x);
-        document.documentElement.style.setProperty('--glass-y', y);
-        frame = 0;
-      });
-    };
-    window.addEventListener('pointermove', updateGlassLight, { passive: true });
-    return () => {
-      window.removeEventListener('pointermove', updateGlassLight);
-      if (frame) window.cancelAnimationFrame(frame);
-    };
-  }, []);
-
   return (
     <>
       <a

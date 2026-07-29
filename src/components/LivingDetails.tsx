@@ -8,7 +8,7 @@ interface LivingDetailsProps {
 
 export function LivingDetails({ scene, quality }: LivingDetailsProps) {
   if (!scene.details) return null;
-  const strandCount = quality === 'high' ? 4 : 2;
+  const strandCount = quality === 'high' ? 3 : 2;
 
   return (
     <div className="living-detail-plane" aria-hidden="true">

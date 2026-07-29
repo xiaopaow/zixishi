@@ -54,7 +54,8 @@ export function SceneBackground({
   }, []);
 
   const effectsEnabled = motionEnabled && !systemReducedMotion;
-  const parallaxEnabled = effectsEnabled && !constrainedDevice;
+  const parallaxEnabled =
+    effectsEnabled && !constrainedDevice && quality === 'high';
   const renderQuality = constrainedDevice ? 'low' : quality;
 
   const scheduleParallax = (x: number, y: number) => {
@@ -109,13 +110,15 @@ export function SceneBackground({
         if (parallaxEnabled) scheduleParallax(0, 0);
       }}
     >
-      <ScenePicture
-        className="scene-image scene-poster"
-        scene={scene}
-        variant="poster"
-        alt=""
-        aria-hidden="true"
-      />
+      {!loaded && (
+        <ScenePicture
+          className="scene-image scene-poster"
+          scene={scene}
+          variant="poster"
+          alt=""
+          aria-hidden="true"
+        />
+      )}
       <ScenePicture
         className={`scene-image scene-full ${loaded ? 'is-loaded' : ''}`}
         scene={scene}
