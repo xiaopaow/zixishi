@@ -17,10 +17,16 @@ const previewAccount = (): AccountSession | null => {
     : null;
 };
 
-export function useAccountSession() {
-  const [session, setSession] = useState<AccountSession | null>(() =>
-    supabaseConfigured ? null : previewAccount(),
-  );
+export interface AccountSessionState {
+  session: AccountSession | null;
+  loading: boolean;
+}
+
+export function useAccountSessionState() {
+  const [state, setState] = useState<AccountSessionState>(() => ({
+    session: supabaseConfigured ? null : previewAccount(),
+    loading: supabaseConfigured,
+  }));
 
   useEffect(() => {
     if (supabaseConfigured) {
@@ -32,17 +38,37 @@ export function useAccountSession() {
           void accountService
             .getSupabaseAccountSession()
             .then((account) => {
-              if (active) setSession(account);
+              if (active) {
+                setState({
+                  session: account,
+                  loading: false,
+                });
+              }
             })
             .catch(() => {
-              if (active) setSession(null);
+              if (active) {
+                setState({
+                  session: null,
+                  loading: false,
+                });
+              }
             });
           unsubscribe = accountService.onSupabaseAccountChange((account) => {
-            if (active) setSession(account);
+            if (active) {
+              setState({
+                session: account,
+                loading: false,
+              });
+            }
           });
         })
         .catch(() => {
-          if (active) setSession(null);
+          if (active) {
+            setState({
+              session: null,
+              loading: false,
+            });
+          }
         });
       return () => {
         active = false;
@@ -50,7 +76,12 @@ export function useAccountSession() {
       };
     }
 
-    const sync = () => setSession(previewAccount());
+    const sync = () => {
+      setState({
+        session: previewAccount(),
+        loading: false,
+      });
+    };
     window.addEventListener('storage', sync);
     window.addEventListener(ACCOUNT_SESSION_EVENT, sync);
     return () => {
@@ -59,5 +90,9 @@ export function useAccountSession() {
     };
   }, []);
 
-  return session;
+  return state;
+}
+
+export function useAccountSession() {
+  return useAccountSessionState().session;
 }

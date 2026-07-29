@@ -73,7 +73,7 @@ export function HomePage() {
       searchParams.get('welcome') === '1' ||
       searchParams.get('session') === 'temporary'
     ) {
-      navigate('/', { replace: true });
+      navigate('/app', { replace: true });
     }
   }, [navigate, searchParams]);
 

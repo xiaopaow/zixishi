@@ -13,7 +13,7 @@ import { useAccountSession } from '../hooks/useAccountSession';
 import { useApp } from '../context/AppContext';
 
 const navigation = [
-  { to: '/', label: '首页', icon: Home },
+  { to: '/app', label: '首页', icon: Home },
   { to: '/room', label: '专注室', icon: TimerReset },
   { to: '/track', label: '轨迹', icon: BarChart3 },
   { to: '/settings', label: '设置', icon: Settings },
@@ -38,7 +38,7 @@ export function AppShell() {
     >
       <div className="shell-backdrop" aria-hidden="true" />
       <header className="topbar">
-        <NavLink to="/" className="brand" aria-label="栖时首页">
+        <NavLink to="/app" className="brand" aria-label="栖时自习室首页">
           <span className="brand-mark"><Leaf size={19} strokeWidth={1.8} /></span>
           <span>
             <strong>栖时</strong>
@@ -50,7 +50,7 @@ export function AppShell() {
             <NavLink
               to={to}
               key={to}
-              end={to === '/'}
+              end={to === '/app'}
               className={({ isActive }) => (isActive ? 'active' : '')}
             >
               <Icon size={17} strokeWidth={1.8} />
@@ -89,7 +89,7 @@ export function AppShell() {
           <NavLink
             to={to}
             key={to}
-            end={to === '/'}
+            end={to === '/app'}
             className={({ isActive }) => (isActive ? 'active' : '')}
           >
             <Icon size={20} strokeWidth={1.8} />

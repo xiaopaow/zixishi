@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef } from 'react';
+import { lazy, Suspense, useEffect, useRef, type ReactNode } from 'react';
 import { App as NativeApp } from '@capacitor/app';
 import type { PluginListenerHandle } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
@@ -13,14 +13,20 @@ import {
 } from 'react-router-dom';
 import { AppShell } from './components/AppShell';
 import { useApp } from './context/AppContext';
+import { useAccountSessionState } from './hooks/useAccountSession';
 import {
   isNativeApp,
   NATIVE_FOCUS_BACK_EVENT,
 } from './native/mobile';
-import { HomePage } from './pages/HomePage';
+import { LandingPage } from './pages/LandingPage';
 
 const AccountPage = lazy(() =>
   import('./pages/AccountPage').then(({ AccountPage: page }) => ({
+    default: page,
+  })),
+);
+const HomePage = lazy(() =>
+  import('./pages/HomePage').then(({ HomePage: page }) => ({
     default: page,
   })),
 );
@@ -54,8 +60,62 @@ function RouteLoading() {
   );
 }
 
-function AppRoutes() {
+function ProtectedRoute({ children }: { children: ReactNode }) {
+  const { session, loading } = useAccountSessionState();
+  const location = useLocation();
+
+  if (loading) {
+    return <RouteLoading />;
+  }
+
+  if (!session) {
+    const returnTo = `${location.pathname}${location.search}`;
+    return (
+      <Navigate
+        to={`/account?returnTo=${encodeURIComponent(returnTo)}`}
+        replace
+      />
+    );
+  }
+
+  return children;
+}
+
+function AppStorageGate({ children }: { children: ReactNode }) {
   const { ready, storageError, refresh } = useApp();
+  const location = useLocation();
+
+  if (!ready) {
+    return (
+      <div className="app-loading">
+        <span className="loading-leaf">栖</span>
+        <p>正在拾起今天的时间…</p>
+      </div>
+    );
+  }
+
+  if (storageError) {
+    return (
+      <main
+        id="main-content"
+        data-route={location.pathname}
+        tabIndex={-1}
+        className="storage-error-page"
+      >
+        <span className="loading-leaf" aria-hidden="true">栖</span>
+        <h1>本机数据暂时无法打开</h1>
+        <p>{storageError}</p>
+        <button type="button" className="primary-button" onClick={() => void refresh()}>
+          重新尝试
+        </button>
+      </main>
+    );
+  }
+
+  return children;
+}
+
+function AppRoutes() {
   const location = useLocation();
   const navigate = useNavigate();
   const initialRoute = useRef(true);
@@ -97,7 +157,10 @@ function AppRoutes() {
           window.dispatchEvent(new Event(NATIVE_FOCUS_BACK_EVENT));
           return;
         }
-        if (locationPath.current === '/') {
+        if (
+          locationPath.current === '/' ||
+          locationPath.current === '/app'
+        ) {
           void NativeApp.minimizeApp();
           return;
         }
@@ -129,6 +192,7 @@ function AppRoutes() {
   useEffect(() => {
     const titles: Record<string, string> = {
       '/': '栖时 · 东方疗愈自习室',
+      '/app': '今日自习 · 栖时',
       '/room': '专注室 · 栖时',
       '/track': '专注轨迹 · 栖时',
       '/settings': '设置 · 栖时',
@@ -181,33 +245,6 @@ function AppRoutes() {
     };
   }, []);
 
-  if (!ready) {
-    return (
-      <div className="app-loading">
-        <span className="loading-leaf">栖</span>
-        <p>正在拾起今天的时间…</p>
-      </div>
-    );
-  }
-
-  if (storageError) {
-    return (
-      <main
-        id="main-content"
-        data-route={location.pathname}
-        tabIndex={-1}
-        className="storage-error-page"
-      >
-        <span className="loading-leaf" aria-hidden="true">栖</span>
-        <h1>本机数据暂时无法打开</h1>
-        <p>{storageError}</p>
-        <button type="button" className="primary-button" onClick={() => void refresh()}>
-          重新尝试
-        </button>
-      </main>
-    );
-  }
-
   return (
     <>
       <a
@@ -224,14 +261,32 @@ function AppRoutes() {
       </a>
       <Suspense fallback={<RouteLoading />}>
         <Routes>
-          <Route element={<AppShell />}>
-            <Route path="/" element={<HomePage />} />
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/account" element={<AccountPage />} />
+          <Route
+            element={(
+              <ProtectedRoute>
+                <AppStorageGate>
+                  <AppShell />
+                </AppStorageGate>
+              </ProtectedRoute>
+            )}
+          >
+            <Route path="/app" element={<HomePage />} />
             <Route path="/room" element={<RoomPage />} />
             <Route path="/track" element={<TrackPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
-          <Route path="/focus" element={<FocusPage />} />
-          <Route path="/account" element={<AccountPage />} />
+          <Route
+            path="/focus"
+            element={(
+              <ProtectedRoute>
+                <AppStorageGate>
+                  <FocusPage />
+                </AppStorageGate>
+              </ProtectedRoute>
+            )}
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>

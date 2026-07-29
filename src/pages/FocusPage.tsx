@@ -110,7 +110,7 @@ export function FocusPage() {
 
   useEffect(() => {
     if (!ready || activeTimer || completed || completionStarted.current) return;
-    navigate('/');
+    navigate('/app');
   }, [ready, activeTimer, completed, navigate]);
 
   useEffect(() => {
@@ -338,7 +338,7 @@ export function FocusPage() {
       if (session) {
         setCompleted(session);
       } else {
-        navigate('/');
+        navigate('/app');
       }
     } catch {
       completionStarted.current = false;
@@ -581,7 +581,7 @@ export function FocusPage() {
               </button>
             )}
             <div className="modal-actions">
-              <button type="button" className="secondary-button" onClick={() => navigate('/')}>
+              <button type="button" className="secondary-button" onClick={() => navigate('/app')}>
                 <ArrowLeft size={16} /> 回到首页
               </button>
               <button type="button" className="primary-button" onClick={() => navigate('/track')}>

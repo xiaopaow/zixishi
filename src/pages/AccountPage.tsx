@@ -14,7 +14,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   onSupabasePasswordRecovery,
   registerWithInvite,
@@ -29,21 +29,35 @@ import { ScenePicture } from '../components/ScenePicture';
 import { getScene } from '../data/scenes';
 import { membershipPlans } from '../data/membership';
 import { clearPreviewAccountSession } from '../data/localAccount';
-import { useAccountSession } from '../hooks/useAccountSession';
+import { useAccountSessionState } from '../hooks/useAccountSession';
 
 type AccountMode = 'login' | 'register';
 
 export function AccountPage() {
-  const [mode, setMode] = useState<AccountMode>('login');
+  const [searchParams] = useSearchParams();
+  const [mode, setMode] = useState<AccountMode>(() =>
+    searchParams.get('mode') === 'register' ? 'register' : 'login',
+  );
   const [showPassword, setShowPassword] = useState(false);
   const [status, setStatus] = useState('');
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [recoveryMode, setRecoveryMode] = useState(
-    () => new URLSearchParams(window.location.search).get('recovery') === '1',
+    () => searchParams.get('recovery') === '1',
   );
-  const session = useAccountSession();
+  const { session, loading: sessionLoading } = useAccountSessionState();
   const navigate = useNavigate();
+  const returnTo = useMemo(() => {
+    const requested = searchParams.get('returnTo');
+    if (
+      requested?.startsWith('/') &&
+      !requested.startsWith('//') &&
+      !requested.startsWith('/account')
+    ) {
+      return requested;
+    }
+    return '/app';
+  }, [searchParams]);
   const plusPlan = useMemo(
     () => membershipPlans.find((plan) => plan.id === 'plus')!,
     [],
@@ -68,6 +82,7 @@ export function AccountPage() {
       return;
     }
     if (
+      !recoveryMode &&
       mode === 'register' &&
       !/^[A-Za-z0-9-]{6,24}$/.test(submittedInviteCode)
     ) {
@@ -87,7 +102,7 @@ export function AccountPage() {
         await signOutSupabaseAccount();
         setRecoveryMode(false);
         setMode('login');
-        window.history.replaceState({}, '', '/account');
+        navigate('/account?mode=login', { replace: true });
         setStatus('密码已更新，请使用新密码登录。');
         return;
       }
@@ -105,7 +120,10 @@ export function AccountPage() {
       } else {
         await signInWithPassword(submittedEmail, password);
       }
-      navigate('/?welcome=1', { replace: true });
+      navigate(
+        returnTo === '/app' ? '/app?welcome=1' : returnTo,
+        { replace: true },
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : '';
       setStatus(
@@ -164,7 +182,7 @@ export function AccountPage() {
           </div>
         </Link>
         <Link to="/" className="account-back-link">
-          <ArrowLeft size={16} /> 返回自习室
+          <ArrowLeft size={16} /> 返回产品介绍
         </Link>
       </header>
 
@@ -185,7 +203,14 @@ export function AccountPage() {
 
         <div className="account-glass-shell">
           <section className="account-card" aria-labelledby="account-title">
-            {session && !recoveryMode ? (
+            {sessionLoading && !recoveryMode ? (
+              <div className="account-session account-session-loading" role="status">
+                <span className="loading-leaf" aria-hidden="true">栖</span>
+                <small>正在安全恢复会话</small>
+                <h2 id="account-title">稍等片刻，正在确认登录状态…</h2>
+                <p>已经登录过的设备会自动继续，不需要重复输入密码。</p>
+              </div>
+            ) : session && !recoveryMode ? (
               <div className="account-session">
                 <span className="account-session-avatar" aria-hidden="true">
                   {session.name.slice(0, 1)}
@@ -202,7 +227,7 @@ export function AccountPage() {
                 <button
                   type="button"
                   className="account-submit"
-                  onClick={() => navigate('/')}
+                  onClick={() => navigate('/app')}
                 >
                   进入今日自习室 <ArrowRight size={17} />
                 </button>
