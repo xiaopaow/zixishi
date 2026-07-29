@@ -13,14 +13,16 @@ import {
   TicketCheck,
   UserRound,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
+  onSupabasePasswordRecovery,
   registerWithInvite,
   sendPasswordReset,
   signInWithPassword,
   signOutSupabaseAccount,
   supabaseConfigured,
+  updateSupabasePassword,
 } from '../backend/supabase';
 import { InviteManager } from '../components/InviteManager';
 import { ScenePicture } from '../components/ScenePicture';
@@ -37,6 +39,9 @@ export function AccountPage() {
   const [status, setStatus] = useState('');
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [recoveryMode, setRecoveryMode] = useState(
+    () => new URLSearchParams(window.location.search).get('recovery') === '1',
+  );
   const session = useAccountSession();
   const navigate = useNavigate();
   const plusPlan = useMemo(
@@ -44,6 +49,11 @@ export function AccountPage() {
     [],
   );
   const scene = getScene('snow-tea');
+
+  useEffect(() => {
+    if (!supabaseConfigured) return;
+    return onSupabasePasswordRecovery(() => setRecoveryMode(true));
+  }, []);
 
   const accountFlow = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -53,8 +63,8 @@ export function AccountPage() {
     const submittedName = String(form.get('name') ?? '').trim();
     const submittedInviteCode = String(form.get('inviteCode') ?? '').trim();
 
-    if (!submittedEmail || !password) {
-      setStatus('请先填写邮箱和密码。');
+    if ((!recoveryMode && !submittedEmail) || !password) {
+      setStatus(recoveryMode ? '请输入新密码。' : '请先填写邮箱和密码。');
       return;
     }
     if (
@@ -72,6 +82,15 @@ export function AccountPage() {
     setSubmitting(true);
     setStatus('');
     try {
+      if (recoveryMode) {
+        await updateSupabasePassword(password);
+        await signOutSupabaseAccount();
+        setRecoveryMode(false);
+        setMode('login');
+        window.history.replaceState({}, '', '/account');
+        setStatus('密码已更新，请使用新密码登录。');
+        return;
+      }
       if (mode === 'register') {
         const result = await registerWithInvite({
           email: submittedEmail,
@@ -166,7 +185,7 @@ export function AccountPage() {
 
         <div className="account-glass-shell">
           <section className="account-card" aria-labelledby="account-title">
-            {session ? (
+            {session && !recoveryMode ? (
               <div className="account-session">
                 <span className="account-session-avatar" aria-hidden="true">
                   {session.name.slice(0, 1)}
@@ -218,44 +237,60 @@ export function AccountPage() {
               </div>
             ) : (
               <>
-            <div className="account-mode-switch" aria-label="账号操作">
-              <button
-                type="button"
-                className={mode === 'login' ? 'selected' : ''}
-                aria-pressed={mode === 'login'}
-                onClick={() => {
-                  setMode('login');
-                  setStatus('');
-                }}
-              >
-                登录
-              </button>
-              <button
-                type="button"
-                className={mode === 'register' ? 'selected' : ''}
-                aria-pressed={mode === 'register'}
-                onClick={() => {
-                  setMode('register');
-                  setStatus('');
-                }}
-              >
-                注册
-              </button>
-            </div>
+                {!recoveryMode && (
+                  <div className="account-mode-switch" aria-label="账号操作">
+                    <button
+                      type="button"
+                      className={mode === 'login' ? 'selected' : ''}
+                      aria-pressed={mode === 'login'}
+                      onClick={() => {
+                        setMode('login');
+                        setStatus('');
+                      }}
+                    >
+                      登录
+                    </button>
+                    <button
+                      type="button"
+                      className={mode === 'register' ? 'selected' : ''}
+                      aria-pressed={mode === 'register'}
+                      onClick={() => {
+                        setMode('register');
+                        setStatus('');
+                      }}
+                    >
+                      注册
+                    </button>
+                  </div>
+                )}
 
-            <div className="account-title">
-              <span><UserRound size={18} /></span>
-              <div>
-                <small>
-                  {supabaseConfigured ? '安全账号服务 · 已连接' : '账号服务 · 等待项目配置'}
-                </small>
-                <h2 id="account-title">
-                  {mode === 'login' ? '欢迎回来' : '创建你的栖时账号'}
-                </h2>
-              </div>
-            </div>
+                <div className="account-title">
+                  <span><UserRound size={18} /></span>
+                  <div>
+                    <small>
+                      {supabaseConfigured ? '安全账号服务 · 已连接' : '账号服务 · 等待项目配置'}
+                    </small>
+                    <h2 id="account-title">
+                      {recoveryMode
+                        ? '设置你的新密码'
+                        : mode === 'login'
+                          ? '欢迎回来'
+                          : '创建你的栖时账号'}
+                    </h2>
+                  </div>
+                </div>
 
-            <form className="account-form" onSubmit={accountFlow}>
+                <form className="account-form" onSubmit={accountFlow}>
+              {recoveryMode && (
+                <input
+                  type="email"
+                  name="username"
+                  autoComplete="username"
+                  value={session?.email ?? ''}
+                  readOnly
+                  hidden
+                />
+              )}
               {mode === 'register' && (
                 <label>
                   <span>你的称呼</span>
@@ -270,29 +305,35 @@ export function AccountPage() {
                   </div>
                 </label>
               )}
+                  {!recoveryMode && (
+                    <label>
+                      <span>邮箱</span>
+                      <div className="account-input">
+                        <Mail size={17} />
+                        <input
+                          name="email"
+                          type="email"
+                          value={email}
+                          onChange={(event) => setEmail(event.target.value)}
+                          autoComplete="email"
+                          placeholder="name@example.com"
+                          required
+                        />
+                      </div>
+                    </label>
+                  )}
               <label>
-                <span>邮箱</span>
-                <div className="account-input">
-                  <Mail size={17} />
-                  <input
-                    name="email"
-                    type="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    autoComplete="email"
-                    placeholder="name@example.com"
-                    required
-                  />
-                </div>
-              </label>
-              <label>
-                <span>密码</span>
+                <span>{recoveryMode ? '新密码' : '密码'}</span>
                 <div className="account-input">
                   <LockKeyhole size={17} />
                   <input
                     name="password"
                     type={showPassword ? 'text' : 'password'}
-                    autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                    autoComplete={
+                      recoveryMode || mode === 'register'
+                        ? 'new-password'
+                        : 'current-password'
+                    }
                     placeholder="至少 8 位"
                     minLength={8}
                     required
@@ -328,22 +369,24 @@ export function AccountPage() {
                 </label>
               )}
 
-              <div className="account-form-meta">
-                <label>
-                  <input
-                    type="checkbox"
-                    name={mode === 'login' ? 'remember' : 'terms'}
-                    defaultChecked
-                    required={mode === 'register'}
-                  />
-                  <span>{mode === 'login' ? '保持登录' : '同意未来的服务与隐私条款'}</span>
-                </label>
-                {mode === 'login' && (
-                  <button type="button" onClick={() => void requestPasswordReset()}>
-                    忘记密码
-                  </button>
-                )}
-              </div>
+                  {!recoveryMode && (
+                    <div className="account-form-meta">
+                      <label>
+                        <input
+                          type="checkbox"
+                          name={mode === 'login' ? 'remember' : 'terms'}
+                          defaultChecked
+                          required={mode === 'register'}
+                        />
+                        <span>{mode === 'login' ? '保持登录' : '同意未来的服务与隐私条款'}</span>
+                      </label>
+                      {mode === 'login' && (
+                        <button type="button" onClick={() => void requestPasswordReset()}>
+                          忘记密码
+                        </button>
+                      )}
+                    </div>
+                  )}
 
               <button
                 type="submit"
@@ -352,18 +395,22 @@ export function AccountPage() {
               >
                 {submitting
                   ? '正在安全连接…'
-                  : mode === 'login'
-                    ? '继续登录'
-                    : '创建账号'}
+                  : recoveryMode
+                    ? '保存新密码'
+                    : mode === 'login'
+                      ? '继续登录'
+                      : '创建账号'}
                 <ArrowRight size={17} />
               </button>
               <p className="account-form-note" aria-live="polite">
                 {status ||
                   (supabaseConfigured
-                    ? '邀请码只在服务端校验和核销，用户无法自行生成。'
+                    ? recoveryMode
+                      ? '保存后当前恢复会话会自动退出，请重新登录。'
+                      : '邀请码只在服务端校验和核销，用户无法自行生成。'
                     : '尚未配置 Supabase；当前不会发送账号或密码。')}
               </p>
-            </form>
+                </form>
               </>
             )}
           </section>

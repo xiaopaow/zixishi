@@ -34,8 +34,9 @@ export function useScenePresence(activeSceneId?: string) {
 
     void import('../backend/supabase')
       .then((accountService) => {
-        if (disposed || !accountService.supabase) return;
-        client = accountService.supabase;
+        const supabaseClient = accountService.getSupabaseClient();
+        if (disposed || !supabaseClient) return;
+        client = supabaseClient;
         const focusedAt = new Date().toISOString();
         const nextChannel = client.channel(SCENE_PRESENCE_TOPIC, {
           config: {

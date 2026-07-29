@@ -1,6 +1,12 @@
-import { createClient, type Session, type User } from '@supabase/supabase-js';
+import {
+  createClient,
+  type Session,
+  type SupabaseClient,
+  type User,
+} from '@supabase/supabase-js';
 import type { MembershipTier } from '../data/membership';
 import {
+  publicAppUrl,
   supabaseConfigured,
   supabaseProjectUrl,
   supabasePublishableKey,
@@ -8,21 +14,31 @@ import {
 
 export { supabaseConfigured } from './config';
 
-export const supabase = supabaseConfigured
-  ? createClient(supabaseProjectUrl!, supabasePublishableKey!, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true,
-        storageKey: 'qishi.auth.session',
-      },
-      realtime: {
-        params: {
-          eventsPerSecond: 2,
+let supabaseInstance: SupabaseClient | null = null;
+
+export function getSupabaseClient() {
+  if (!supabaseConfigured) return null;
+  if (!supabaseInstance) {
+    supabaseInstance = createClient(
+      supabaseProjectUrl!,
+      supabasePublishableKey!,
+      {
+        auth: {
+          autoRefreshToken: true,
+          persistSession: true,
+          detectSessionInUrl: true,
+          storageKey: 'qishi.auth.session',
+        },
+        realtime: {
+          params: {
+            eventsPerSecond: 2,
+          },
         },
       },
-    })
-  : null;
+    );
+  }
+  return supabaseInstance;
+}
 
 export interface AccountSession {
   id: string;
@@ -51,8 +67,9 @@ export const accountFromSupabaseSession = (session: Session | null) =>
 
 async function accountWithProfile(session: Session | null) {
   const account = accountFromSupabaseSession(session);
-  if (!account || !supabase) return account;
-  const { data, error } = await supabase
+  const client = getSupabaseClient();
+  if (!account || !client) return account;
+  const { data, error } = await client
     .from('profiles')
     .select('display_name,tier,role,membership_expires_at')
     .eq('id', account.id)
@@ -70,8 +87,9 @@ async function accountWithProfile(session: Session | null) {
 }
 
 export async function getSupabaseAccountSession() {
-  if (!supabase) return null;
-  const { data, error } = await supabase.auth.getSession();
+  const client = getSupabaseClient();
+  if (!client) return null;
+  const { data, error } = await client.auth.getSession();
   if (error) throw error;
   return accountWithProfile(data.session);
 }
@@ -79,10 +97,11 @@ export async function getSupabaseAccountSession() {
 export function onSupabaseAccountChange(
   listener: (account: AccountSession | null) => void,
 ) {
-  if (!supabase) return () => undefined;
+  const client = getSupabaseClient();
+  if (!client) return () => undefined;
   const {
     data: { subscription },
-  } = supabase.auth.onAuthStateChange((_event, session) => {
+  } = client.auth.onAuthStateChange((_event, session) => {
     window.setTimeout(() => {
       void accountWithProfile(session)
         .then(listener)
@@ -98,8 +117,9 @@ export async function registerWithInvite(input: {
   name: string;
   inviteCode: string;
 }) {
-  if (!supabase) throw new Error('账号服务尚未配置');
-  const { data, error } = await supabase.auth.signUp({
+  const client = getSupabaseClient();
+  if (!client) throw new Error('账号服务尚未配置');
+  const { data, error } = await client.auth.signUp({
     email: input.email,
     password: input.password,
     options: {
@@ -107,6 +127,7 @@ export async function registerWithInvite(input: {
         display_name: input.name.trim(),
         invite_code: input.inviteCode.trim().toUpperCase(),
       },
+      emailRedirectTo: `${publicAppUrl}/account?confirmed=1`,
     },
   });
   if (error) throw error;
@@ -117,8 +138,9 @@ export async function registerWithInvite(input: {
 }
 
 export async function signInWithPassword(email: string, password: string) {
-  if (!supabase) throw new Error('账号服务尚未配置');
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const client = getSupabaseClient();
+  if (!client) throw new Error('账号服务尚未配置');
+  const { data, error } = await client.auth.signInWithPassword({
     email,
     password,
   });
@@ -127,17 +149,36 @@ export async function signInWithPassword(email: string, password: string) {
 }
 
 export async function signOutSupabaseAccount() {
-  if (!supabase) return;
-  const { error } = await supabase.auth.signOut();
+  const client = getSupabaseClient();
+  if (!client) return;
+  const { error } = await client.auth.signOut();
   if (error) throw error;
 }
 
 export async function sendPasswordReset(email: string) {
-  if (!supabase) throw new Error('账号服务尚未配置');
-  const redirectTo = `${window.location.origin}/account?recovery=1`;
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo,
+  const client = getSupabaseClient();
+  if (!client) throw new Error('账号服务尚未配置');
+  const { error } = await client.auth.resetPasswordForEmail(email, {
+    redirectTo: `${publicAppUrl}/account?recovery=1`,
   });
+  if (error) throw error;
+}
+
+export function onSupabasePasswordRecovery(listener: () => void) {
+  const client = getSupabaseClient();
+  if (!client) return () => undefined;
+  const {
+    data: { subscription },
+  } = client.auth.onAuthStateChange((event) => {
+    if (event === 'PASSWORD_RECOVERY') listener();
+  });
+  return () => subscription.unsubscribe();
+}
+
+export async function updateSupabasePassword(password: string) {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('账号服务尚未配置');
+  const { error } = await client.auth.updateUser({ password });
   if (error) throw error;
 }
 
@@ -170,8 +211,9 @@ export async function createOwnerInvite(input: {
   expiresAt: string | null;
   note: string;
 }) {
-  if (!supabase) throw new Error('账号服务尚未配置');
-  const { error } = await supabase.rpc('admin_create_invite', {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('账号服务尚未配置');
+  const { error } = await client.rpc('admin_create_invite', {
     code: input.code,
     max_uses: input.maxUses,
     expires_at: input.expiresAt,
@@ -181,15 +223,17 @@ export async function createOwnerInvite(input: {
 }
 
 export async function listOwnerInvites() {
-  if (!supabase) return [] as InviteSummary[];
-  const { data, error } = await supabase.rpc('admin_list_invites');
+  const client = getSupabaseClient();
+  if (!client) return [] as InviteSummary[];
+  const { data, error } = await client.rpc('admin_list_invites');
   if (error) throw error;
   return (data ?? []) as InviteSummary[];
 }
 
 export async function revokeOwnerInvite(inviteId: string) {
-  if (!supabase) throw new Error('账号服务尚未配置');
-  const { error } = await supabase.rpc('admin_revoke_invite', {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('账号服务尚未配置');
+  const { error } = await client.rpc('admin_revoke_invite', {
     invite_id: inviteId,
   });
   if (error) throw error;

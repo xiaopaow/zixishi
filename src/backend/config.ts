@@ -8,3 +8,7 @@ export const supabaseConfigured = Boolean(
   supabaseProjectUrl && supabasePublishableKey,
 );
 
+export const publicAppUrl = (
+  import.meta.env.VITE_PUBLIC_APP_URL ||
+  (typeof window === 'undefined' ? '' : window.location.origin)
+).replace(/\/+$/, '');

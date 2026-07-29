@@ -12,6 +12,7 @@
 ```dotenv
 VITE_SUPABASE_URL=https://你的项目.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_你的公开密钥
+VITE_PUBLIC_APP_URL=https://你的正式站点
 ```
 
 ## 2. 初始化数据库
@@ -53,7 +54,8 @@ where id = (
 ## 4. 邮件与回调
 
 - 保持 Email confirmation 开启，正式内测前配置自有 SMTP。
-- 在 Authentication → URL Configuration 添加正式站点地址与密码找回回调地址。
+- 在 Authentication → URL Configuration 中把 Site URL 设为正式站点，并添加
+  `https://你的正式站点/**` 到 Redirect URLs。
 - Android 邮件深链需要在上架前配置 App Links；未配置前可先在网页完成邮箱验证和改密。
 
 ## 5. 数据定义
@@ -62,4 +64,3 @@ where id = (
 - `private.invite_codes`：邀请码摘要、次数、有效期和停用状态，仅安全函数可访问。
 - `private.invite_redemptions`：邀请码与注册用户的核销记录。
 - `qishi:scene-presence`：只包含当前场景、开始时间和心跳时间，不上传学习目标。
-
